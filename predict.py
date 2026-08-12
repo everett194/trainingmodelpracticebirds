@@ -39,16 +39,12 @@ need to import BirdStrikeNet from model.py and re-create an empty network
 before loading the saved weights into it.
 """
 
-import torch
-
 from config import (
     CLASSIFICATION_THRESHOLD,
     FEATURE_NAMES,
     FEATURE_RANGES,
-    MODEL_PATH,
 )
-from dataset import normalize_single_example
-from model import BirdStrikeNet
+from inference import load_model, predict
 
 # Human-friendly prompts and short hints shown for each feature, in the
 # same order as FEATURE_NAMES so answers line up with the right feature.
@@ -79,16 +75,6 @@ def ask_for_value(feature_name):
         return value
 
 
-def load_model():
-    checkpoint = torch.load(MODEL_PATH, weights_only=False)
-
-    model = BirdStrikeNet()
-    model.load_state_dict(checkpoint["model_state_dict"])
-    model.eval()  # switch to inference mode
-
-    return model, checkpoint["feature_mean"], checkpoint["feature_std"]
-
-
 def main():
     print("Bird-Strike Risk Predictor")
     print("(Educational demo only - NOT an operational aviation-safety tool)\n")
@@ -97,14 +83,7 @@ def main():
     raw_values = [ask_for_value(name) for name in FEATURE_NAMES]
 
     model, feature_mean, feature_std = load_model()
-
-    normalized = normalize_single_example(raw_values, feature_mean, feature_std)
-    input_tensor = torch.tensor(normalized, dtype=torch.float32).unsqueeze(0)  # shape (1, 8): a batch of one
-
-    with torch.no_grad():
-        logit = model(input_tensor).item()
-
-    probability = torch.sigmoid(torch.tensor(logit)).item()
+    logit, probability = predict(raw_values, model, feature_mean, feature_std)
     classification = "ELEVATED" if probability >= CLASSIFICATION_THRESHOLD else "LOWER"
 
     print("\n## Neural network output")

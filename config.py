@@ -24,6 +24,7 @@ TEST_CSV_PATH = os.path.join(DATA_DIR, "test.csv")
 
 MODEL_PATH = os.path.join(MODELS_DIR, "bird_strike_model.pt")
 METRICS_PATH = os.path.join(RESULTS_DIR, "training_metrics.json")
+LOSS_CURVE_PATH = os.path.join(RESULTS_DIR, "loss_curve.png")
 
 # ---------------------------------------------------------------------------
 # Feature definitions

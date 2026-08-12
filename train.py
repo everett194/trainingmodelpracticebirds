@@ -50,6 +50,9 @@ predictions match the training labels as closely as possible.
 import json
 import random
 
+import matplotlib
+matplotlib.use("Agg")  # write plots straight to a file, no GUI window needed
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from sklearn.metrics import accuracy_score, precision_score, recall_score
@@ -58,6 +61,7 @@ from torch.utils.data import DataLoader
 from config import (
     BATCH_SIZE,
     LEARNING_RATE,
+    LOSS_CURVE_PATH,
     METRICS_PATH,
     MODEL_PATH,
     NUM_EPOCHS,
@@ -133,6 +137,11 @@ def main():
 
     print(f"Training BirdStrikeNet for {NUM_EPOCHS} epochs...\n")
 
+    # Record the average loss after every epoch so we can plot how it
+    # changes over time - a falling curve is the visual signature of a
+    # network that's actually learning.
+    epoch_losses = []
+
     for epoch in range(1, NUM_EPOCHS + 1):
         model.train()  # tells the model it's in training mode
         running_loss = 0.0
@@ -149,9 +158,21 @@ def main():
             running_loss += loss.item() * features.size(0)
 
         epoch_loss = running_loss / len(train_dataset)
+        epoch_losses.append(epoch_loss)
 
         if epoch == 1 or epoch % 10 == 0:
             print(f"Epoch {epoch}/{NUM_EPOCHS} - Loss: {epoch_loss:.4f}")
+
+    # Plot the recorded loss curve and save it as an image. This is the
+    # same "loss" printed above each epoch, just visualized over time.
+    plt.figure(figsize=(8, 5))
+    plt.plot(range(1, NUM_EPOCHS + 1), epoch_losses)
+    plt.xlabel("Epoch")
+    plt.ylabel("Training loss (BCEWithLogitsLoss)")
+    plt.title("BirdStrikeNet training loss over time")
+    plt.grid(True, alpha=0.3)
+    plt.savefig(LOSS_CURVE_PATH)
+    plt.close()
 
     # Final evaluation on the held-out test set - data the model never
     # trained on, so this is an honest measure of how well it generalizes.
@@ -185,6 +206,7 @@ def main():
     print(f"Test loss: {test_loss:.4f}")
     print(f"Model saved to {MODEL_PATH}")
     print(f"Metrics saved to {METRICS_PATH}")
+    print(f"Loss curve saved to {LOSS_CURVE_PATH}")
 
 
 if __name__ == "__main__":

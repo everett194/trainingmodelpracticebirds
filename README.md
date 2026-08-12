@@ -277,10 +277,14 @@ model.py              BirdStrikeNet neural network definition
 dataset.py            PyTorch Dataset: reads CSV, normalizes features, returns tensors
 generate_data.py       Creates the synthetic dataset (data/train.csv, data/test.csv)
 train.py              Trains the model, evaluates it, saves weights + metrics
+inference.py           Shared load-model / run-a-prediction helpers
 predict.py             Interactive CLI: enter 8 values, get a prediction
+inspect_weights.py     Prints the learned weights/biases; demos manually editing one
+app.py                 Local Flask website: same prediction, in a browser
+templates/index.html   The web page app.py renders
 data/                 Generated CSV datasets
 models/               Saved trained model weights (.pt)
-results/              Saved training/evaluation metrics (.json)
+results/              Saved metrics (.json) and the training loss curve (.png)
 ```
 
 ---
@@ -291,7 +295,8 @@ results/              Saved training/evaluation metrics (.json)
 pip install -r requirements.txt
 python generate_data.py
 python train.py
-python predict.py
+python predict.py       # terminal interface
+python app.py            # or: web interface at http://localhost:5000
 ```
 
 ### What actually happened when we ran this
@@ -323,6 +328,7 @@ Test recall: 78.2%
 Test loss: 0.4972
 Model saved to models/bird_strike_model.pt
 Metrics saved to results/training_metrics.json
+Loss curve saved to results/loss_curve.png
 ```
 
 These numbers are honest — not artificially inflated. ~75% accuracy on
@@ -339,6 +345,82 @@ Raw model output (logit): 3.7181
 Elevated bird-strike-risk probability: 97.6%
 Classification: ELEVATED
 ```
+
+---
+
+## Web interface
+
+`predict.py` works in the terminal; `app.py` is the same prediction, in a
+browser, via a tiny local website built with [Flask](https://flask.palletsprojects.com/).
+
+```bash
+python app.py
+```
+
+Then open **http://localhost:5000** in your browser. You'll see a form
+with all 8 inputs; submit it and the same probability/logit/classification
+`predict.py` would print appears at the top of the page instead.
+
+Under the hood, `app.py` doesn't reimplement any ML logic - it calls the
+exact same `inference.load_model()` / `inference.predict()` functions that
+`predict.py` uses. Flask's only job is turning the submitted form into 8
+numbers and rendering the result as HTML (`templates/index.html`).
+
+This is a **local-only development server** (`app.run(debug=True)`) meant
+for you to interact with on your own machine - it isn't set up for, and
+shouldn't be exposed to, the public internet.
+
+If you haven't trained a model yet, the page will tell you to run
+`python train.py` first instead of erroring.
+
+---
+
+## Visualizing the loss curve
+
+`train.py` records the average loss after every epoch and saves a plot to
+`results/loss_curve.png` using matplotlib. Open that file (Finder, VS
+Code, or an image viewer) after training to see the classic "sharp drop,
+then flattens out" shape of a network converging — the same numbers that
+are printed to the console every 10 epochs, just visualized over all 100.
+
+## Inspecting and manually editing weights
+
+Run:
+
+```bash
+python inspect_weights.py
+```
+
+This does two things:
+
+1. **Prints every learned weight and bias**, layer by layer, so you can
+   see the actual numbers `train.py` arrived at — no more "black box."
+2. **Manually edits one weight by hand** (flips the sign of whichever
+   `layer3` weight is currently contributing the most to a fixed example
+   prediction) and shows the prediction probability before and after —
+   e.g. `97.63% -> 35.38%` — so you can see, directly, that "training" is
+   really just search over these numbers, and that a single number inside
+   the network can meaningfully swing its output.
+
+The edit only exists in that script's memory — `models/bird_strike_model.pt`
+is left untouched. If you want to experiment further, load the model the
+same way (see `load_model()` in `inspect_weights.py`), change any
+`model.layerN.weight.data[row, col]` or `model.layerN.bias.data[i]` value
+you like, and either:
+
+- run a prediction on it in the same script (like the demo does), or
+- save your edited version to a new file so it persists:
+  ```python
+  torch.save(
+      {"model_state_dict": model.state_dict(), "feature_mean": feature_mean, "feature_std": feature_std},
+      "models/bird_strike_model_edited.pt",
+  )
+  ```
+
+Note this is purely for building intuition — it's not how the model
+actually learns. Real training (`train.py`) adjusts *all* the weights and
+biases together, guided by gradients computed from thousands of labeled
+examples, not one number changed by a human's guess.
 
 ---
 
