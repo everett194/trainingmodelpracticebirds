@@ -15,9 +15,13 @@ inference.py, same as before.
 Run with:
     python app.py
 Then open:
-    http://localhost:5000
+    http://localhost:5001
 in a browser. (Train the model first with `python train.py` if you
 haven't - this page will tell you if the model file is missing.)
+
+Note: this uses port 5001, not the more common default of 5000, because
+5000 is claimed by macOS's AirPlay Receiver by default and would refuse
+the connection.
 """
 
 import os
@@ -110,4 +114,6 @@ def predict_route():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # Port 5000 is macOS's default AirPlay Receiver port and will refuse
+    # connections from anything else, so we use 5001 instead.
+    app.run(debug=True, port=5001)

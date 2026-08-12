@@ -296,7 +296,7 @@ pip install -r requirements.txt
 python generate_data.py
 python train.py
 python predict.py       # terminal interface
-python app.py            # or: web interface at http://localhost:5000
+python app.py            # or: web interface at http://localhost:5001
 ```
 
 ### What actually happened when we ran this
@@ -357,9 +357,13 @@ browser, via a tiny local website built with [Flask](https://flask.palletsprojec
 python app.py
 ```
 
-Then open **http://localhost:5000** in your browser. You'll see a form
+Then open **http://localhost:5001** in your browser. You'll see a form
 with all 8 inputs; submit it and the same probability/logit/classification
 `predict.py` would print appears at the top of the page instead.
+
+(Port 5001, not 5000, because macOS's AirPlay Receiver claims port 5000 by
+default and will reject the connection with an "unauthorized"-looking error
+if something else tries to use it.)
 
 Under the hood, `app.py` doesn't reimplement any ML logic - it calls the
 exact same `inference.load_model()` / `inference.predict()` functions that
