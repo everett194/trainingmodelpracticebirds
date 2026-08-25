@@ -1,0 +1,65 @@
+# configs/data_sources.yaml
+#
+# Where each raw dataset is expected to live, and which ones are
+# required vs optional for the "real" pipeline. The sample-data pipeline
+# does not read this file - it uses data/sample/ directly.
+#
+# See DATA_DOWNLOAD_GUIDE.md for how to obtain each dataset.
+
+raw_data_dir: data/raw
+
+sources:
+  faa_strikes:
+    required: true
+    path: data/raw/faa_wildlife_strikes.csv
+    formats: [csv, xlsx]
+    description: >
+      FAA Wildlife Strike Database export. Required for the damage
+      prediction task (Task A).
+
+  trektellen_sites:
+    required: true
+    path: data/raw/trektellen_sites.csv
+    formats: [csv, xlsx]
+    description: >
+      Trektellen monitoring-site metadata. Required (together with
+      trektellen_counts) for the activity-index task (Task B). Requires
+      a user-authorized export - see DATA_DOWNLOAD_GUIDE.md and
+      TREKTELLEN_PERMISSION_REFERENCE in .env.
+
+  trektellen_counts:
+    required: true
+    path: data/raw/trektellen_counts.csv
+    formats: [csv, xlsx]
+    description: >
+      Trektellen count-session observations. See trektellen_sites above.
+
+  airports:
+    required: false
+    path: data/raw/airports.geojson
+    formats: [geojson]
+    description: >
+      Airport point locations and metadata. Optional: without this,
+      airport-centered geospatial features (proximity to Trektellen
+      sites, buffers) cannot be computed for real data, but FAA-reported
+      lat/lon on individual strikes can still be used directly.
+
+  hourly_weather:
+    required: false
+    path: data/raw/hourly_weather.parquet
+    formats: [parquet]
+    description: >
+      Hourly station weather (e.g. NOAA ISD). Optional: without this,
+      weather_available=false is recorded on every joined record and
+      weather features are left null rather than fabricated.
+
+  bts_t100_departures:
+    required: false
+    path: data/raw/bts_t100_departures.csv
+    formats: [csv]
+    description: >
+      BTS T-100 flight-segment/departure data. Not used by either task
+      today. Reserved as the future flight-exposure denominator needed
+      before any true strike-probability (as opposed to conditional
+      damage probability) model can be built responsibly. See
+      "Scientific limitations" in README.md.

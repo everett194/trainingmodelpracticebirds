@@ -1,0 +1,22 @@
+# configs/synthetic_demo.yaml
+#
+# Pointer config for the ORIGINAL, unrelated educational demo preserved
+# in synthetic_demo/. That project has its own config.py (plain Python,
+# not YAML) - this file exists only so `birdstrikegeo.cli` has a single,
+# consistent place to look up "where is the synthetic demo" without
+# hardcoding a path in multiple places.
+#
+# The synthetic demo's 8-feature neural network and hand-designed labels
+# are NOT related to, and NOT validated against, the real FAA/Trektellen
+# data used by BirdStrikeGeo's damage and activity-index tasks.
+
+path: synthetic_demo
+description: >
+  Original educational "learn how a neural network works" project.
+  Entirely synthetic data, hand-designed label relationships, and a
+  small 8->6->4->1 PyTorch classifier. See synthetic_demo/README.md.
+entry_points:
+  generate_data: synthetic_demo/generate_data.py
+  train: synthetic_demo/train.py
+  predict: synthetic_demo/predict.py
+  app: synthetic_demo/app.py

@@ -1,6 +1,37 @@
+# Core dependencies for both synthetic_demo/ and the BirdStrikeGeo
+# (src/birdstrikegeo) system. Install with:
+#   pip install -r requirements.txt
+#
+# For geopandas/shapely/pyproj: these pull in compiled geo libraries
+# (GEOS/PROJ/GDAL) via prebuilt wheels on most platforms. If a wheel
+# isn't available for your platform, see
+# https://geopandas.org/en/stable/getting_started/install.html
+
+# ML / data
 torch
 pandas
 numpy
 scikit-learn
 matplotlib
+
+# Web interface
 flask
+requests
+
+# Configuration and environment
+pyyaml
+python-dotenv
+
+# File formats
+openpyxl
+pyarrow
+
+# Geospatial
+geopandas
+shapely
+pyproj
+folium
+
+# Sunrise/sunset (dawn/dusk features) - computed from date + coordinates
+# rather than fixed clock hours.
+astral

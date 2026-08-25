@@ -1,0 +1,642 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "metadata": {
+    "source": "generate_sample_data.py",
+    "generated_at": "2026-08-25T19:36:05.604310+00:00",
+    "sample_data_flag": true,
+    "disclaimer": "SAMPLE DATA \u2014 NOT A REAL RESULT"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.25047,
+          42.3833
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE01",
+        "icao": "KE01",
+        "iata": "E01",
+        "faa_lid": "SAMPLE01",
+        "airport_name": "Sample Regional Airport 01 (SYNTHETIC)",
+        "elevation_ft": 2146.5,
+        "airport_type": "medium_airport",
+        "runway_count": 1,
+        "longest_runway_ft": 4300,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -85.74871,
+          45.60996
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE02",
+        "icao": "KE02",
+        "iata": "E02",
+        "faa_lid": "SAMPLE02",
+        "airport_name": "Sample Municipal Airport 02 (SYNTHETIC)",
+        "elevation_ft": 1965.2,
+        "airport_type": "large_airport",
+        "runway_count": 3,
+        "longest_runway_ft": 7328,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -78.29558,
+          35.93277
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE03",
+        "icao": "KE03",
+        "iata": "E03",
+        "faa_lid": "SAMPLE03",
+        "airport_name": "Sample Regional Airport 03 (SYNTHETIC)",
+        "elevation_ft": 1609.7,
+        "airport_type": "small_airport",
+        "runway_count": 2,
+        "longest_runway_ft": 7269,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -95.04368,
+          33.63582
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE04",
+        "icao": "KE04",
+        "iata": "E04",
+        "faa_lid": "SAMPLE04",
+        "airport_name": "Sample Municipal Airport 04 (SYNTHETIC)",
+        "elevation_ft": 159.5,
+        "airport_type": "small_airport",
+        "runway_count": 1,
+        "longest_runway_ft": 8869,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -104.04633,
+          42.1294
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE05",
+        "icao": "KE05",
+        "iata": "E05",
+        "faa_lid": "SAMPLE05",
+        "airport_name": "Sample Regional Airport 05 (SYNTHETIC)",
+        "elevation_ft": 2426.7,
+        "airport_type": "small_airport",
+        "runway_count": 3,
+        "longest_runway_ft": 10116,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.99755,
+          33.11422
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE06",
+        "icao": "KE06",
+        "iata": "E06",
+        "faa_lid": "SAMPLE06",
+        "airport_name": "Sample Municipal Airport 06 (SYNTHETIC)",
+        "elevation_ft": 109.5,
+        "airport_type": "large_airport",
+        "runway_count": 3,
+        "longest_runway_ft": 9305,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.46206,
+          41.91619
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE07",
+        "icao": "KE07",
+        "iata": "E07",
+        "faa_lid": "SAMPLE07",
+        "airport_name": "Sample Regional Airport 07 (SYNTHETIC)",
+        "elevation_ft": 814.6,
+        "airport_type": "medium_airport",
+        "runway_count": 1,
+        "longest_runway_ft": 7491,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -114.15353,
+          33.03154
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE08",
+        "icao": "KE08",
+        "iata": "E08",
+        "faa_lid": "SAMPLE08",
+        "airport_name": "Sample Municipal Airport 08 (SYNTHETIC)",
+        "elevation_ft": 1189.3,
+        "airport_type": "medium_airport",
+        "runway_count": 2,
+        "longest_runway_ft": 9193,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -82.52948,
+          36.99443
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE09",
+        "icao": "KE09",
+        "iata": "E09",
+        "faa_lid": "SAMPLE09",
+        "airport_name": "Sample Regional Airport 09 (SYNTHETIC)",
+        "elevation_ft": 1750.7,
+        "airport_type": "medium_airport",
+        "runway_count": 3,
+        "longest_runway_ft": 10574,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -102.56347,
+          42.87623
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE10",
+        "icao": "KE10",
+        "iata": "E10",
+        "faa_lid": "SAMPLE10",
+        "airport_name": "Sample Municipal Airport 10 (SYNTHETIC)",
+        "elevation_ft": 720.8,
+        "airport_type": "medium_airport",
+        "runway_count": 2,
+        "longest_runway_ft": 4687,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -119.6687,
+          33.19853
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE11",
+        "icao": "KE11",
+        "iata": "E11",
+        "faa_lid": "SAMPLE11",
+        "airport_name": "Sample Regional Airport 11 (SYNTHETIC)",
+        "elevation_ft": 1967.3,
+        "airport_type": "medium_airport",
+        "runway_count": 2,
+        "longest_runway_ft": 9493,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -99.34879,
+          42.49166
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE12",
+        "icao": "KE12",
+        "iata": "E12",
+        "faa_lid": "SAMPLE12",
+        "airport_name": "Sample Municipal Airport 12 (SYNTHETIC)",
+        "elevation_ft": 1421.9,
+        "airport_type": "large_airport",
+        "runway_count": 1,
+        "longest_runway_ft": 4473,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -98.80067,
+          40.69445
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE13",
+        "icao": "KE13",
+        "iata": "E13",
+        "faa_lid": "SAMPLE13",
+        "airport_name": "Sample Regional Airport 13 (SYNTHETIC)",
+        "elevation_ft": 1413.1,
+        "airport_type": "small_airport",
+        "runway_count": 2,
+        "longest_runway_ft": 8895,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -94.83568,
+          38.85727
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE14",
+        "icao": "KE14",
+        "iata": "E14",
+        "faa_lid": "SAMPLE14",
+        "airport_name": "Sample Municipal Airport 14 (SYNTHETIC)",
+        "elevation_ft": 759.9,
+        "airport_type": "large_airport",
+        "runway_count": 2,
+        "longest_runway_ft": 7212,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -101.61621,
+          33.43335
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE15",
+        "icao": "KE15",
+        "iata": "E15",
+        "faa_lid": "SAMPLE15",
+        "airport_name": "Sample Regional Airport 15 (SYNTHETIC)",
+        "elevation_ft": 2133.5,
+        "airport_type": "medium_airport",
+        "runway_count": 3,
+        "longest_runway_ft": 3995,
+        "state": "SS",
+        "country": "US-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          2.33984,
+          49.22076
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE16",
+        "icao": "EE16",
+        "iata": "E16",
+        "faa_lid": "",
+        "airport_name": "Sample Municipal Airport 16 (SYNTHETIC)",
+        "elevation_ft": 1654.8,
+        "airport_type": "medium_airport",
+        "runway_count": 2,
+        "longest_runway_ft": 10163,
+        "state": "",
+        "country": "EU-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          5.15967,
+          54.9647
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE17",
+        "icao": "EE17",
+        "iata": "E17",
+        "faa_lid": "",
+        "airport_name": "Sample Regional Airport 17 (SYNTHETIC)",
+        "elevation_ft": 2035.1,
+        "airport_type": "large_airport",
+        "runway_count": 2,
+        "longest_runway_ft": 3693,
+        "state": "",
+        "country": "EU-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.05898,
+          46.35072
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE18",
+        "icao": "EE18",
+        "iata": "E18",
+        "faa_lid": "",
+        "airport_name": "Sample Municipal Airport 18 (SYNTHETIC)",
+        "elevation_ft": 1154.7,
+        "airport_type": "large_airport",
+        "runway_count": 3,
+        "longest_runway_ft": 7758,
+        "state": "",
+        "country": "EU-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          12.40801,
+          47.28468
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE19",
+        "icao": "EE19",
+        "iata": "E19",
+        "faa_lid": "",
+        "airport_name": "Sample Regional Airport 19 (SYNTHETIC)",
+        "elevation_ft": 1115.4,
+        "airport_type": "medium_airport",
+        "runway_count": 1,
+        "longest_runway_ft": 6062,
+        "state": "",
+        "country": "EU-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          4.04532,
+          54.45424
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE20",
+        "icao": "EE20",
+        "iata": "E20",
+        "faa_lid": "",
+        "airport_name": "Sample Municipal Airport 20 (SYNTHETIC)",
+        "elevation_ft": 219.1,
+        "airport_type": "large_airport",
+        "runway_count": 2,
+        "longest_runway_ft": 11676,
+        "state": "",
+        "country": "EU-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          12.49268,
+          58.62871
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE21",
+        "icao": "EE21",
+        "iata": "E21",
+        "faa_lid": "",
+        "airport_name": "Sample Regional Airport 21 (SYNTHETIC)",
+        "elevation_ft": 664.7,
+        "airport_type": "small_airport",
+        "runway_count": 1,
+        "longest_runway_ft": 10119,
+        "state": "",
+        "country": "EU-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          6.23404,
+          55.75335
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE22",
+        "icao": "EE22",
+        "iata": "E22",
+        "faa_lid": "",
+        "airport_name": "Sample Municipal Airport 22 (SYNTHETIC)",
+        "elevation_ft": 680.6,
+        "airport_type": "large_airport",
+        "runway_count": 2,
+        "longest_runway_ft": 11172,
+        "state": "",
+        "country": "EU-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          0.05908,
+          51.83664
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE23",
+        "icao": "EE23",
+        "iata": "E23",
+        "faa_lid": "",
+        "airport_name": "Sample Regional Airport 23 (SYNTHETIC)",
+        "elevation_ft": 764.9,
+        "airport_type": "medium_airport",
+        "runway_count": 2,
+        "longest_runway_ft": 5002,
+        "state": "",
+        "country": "EU-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.96299,
+          57.84921
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE24",
+        "icao": "EE24",
+        "iata": "E24",
+        "faa_lid": "",
+        "airport_name": "Sample Municipal Airport 24 (SYNTHETIC)",
+        "elevation_ft": 1798.7,
+        "airport_type": "medium_airport",
+        "runway_count": 1,
+        "longest_runway_ft": 8832,
+        "state": "",
+        "country": "EU-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.24617,
+          53.76147
+        ]
+      },
+      "properties": {
+        "airport_id": "SAMPLE25",
+        "icao": "EE25",
+        "iata": "E25",
+        "faa_lid": "",
+        "airport_name": "Sample Regional Airport 25 (SYNTHETIC)",
+        "elevation_ft": 211.1,
+        "airport_type": "medium_airport",
+        "runway_count": 3,
+        "longest_runway_ft": 3853,
+        "state": "",
+        "country": "EU-SAMPLE",
+        "data_origin": "synthetic_fixture",
+        "operational_use": false
+      }
+    }
+  ]
+}

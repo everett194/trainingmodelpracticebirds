@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Damage Model — BirdStrikeGeo{% endblock %}
+{% set active_mode = "damage" %}
+{% block heading %}2. Reported-Strike Damage Model{% endblock %}
+{% block subheading %}Task A — trained on FAA Wildlife Strike Database records (or synthetic sample fixtures).{% endblock %}
+{% block sample_banner %}
+{% if using_sample_model %}<div class="sample-banner">SAMPLE DATA — NOT A REAL RESULT</div>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="disclaimer">
+  <strong>Estimated probability of aircraft damage, conditional on a reported wildlife
+  strike.</strong> This is NOT the probability that a strike will occur — that would
+  require flight-exposure data (e.g. BTS T-100 departures) this project does not yet have.
+  See README.md "Scientific limitations".
+</div>
+
+{% if model_missing %}
+  <div class="error">No trained damage model found. Run
+    <code>python scripts/prepare_data.py --mode sample && python scripts/train_models.py --mode sample</code>
+    (or <code>--mode real</code> with your own FAA data) first, then reload this page.</div>
+{% endif %}
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+{% if result %}
+  <div class="card result">
+    <h2>Model output</h2>
+    <div class="big-number">{{ "%.1f"|format(result.probability_of_damage_given_reported_strike * 100) }}%</div>
+    <span class="badge {{ 'elevated' if result.classification == 'ELEVATED' else 'lower' }}">{{ result.classification }}</span>
+    <div class="meta">{{ result.prediction_semantics }}</div>
+    <div class="meta">Raw logit: {{ "%.4f"|format(result.logit) }} · threshold used: {{ "%.3f"|format(result.threshold_used) }} · model version: {{ result.model_version }}</div>
+  </div>
+{% endif %}
+
+<div class="card">
+  <form method="post" action="/damage/predict">
+    {% for field in fields %}
+      {% set name, label, kind = field[0], field[1], field[2] %}
+      <div class="field">
+        <label>{{ label }}</label>
+        {% if kind == "select" %}
+          <select name="{{ name }}" {% if model_missing %}disabled{% endif %}>
+            <option value="">-- select --</option>
+            {% for opt in field[3] %}
+              <option value="{{ opt }}" {{ "selected" if submitted.get(name) == opt else "" }}>{{ opt }}</option>
+            {% endfor %}
+          </select>
+        {% else %}
+          <input type="{{ kind }}" name="{{ name }}" value="{{ submitted.get(name, '') }}" {% if model_missing %}disabled{% endif %}>
+        {% endif %}
+      </div>
+    {% endfor %}
+    <button type="submit" {% if model_missing %}disabled{% endif %}>Predict damage probability</button>
+  </form>
+</div>
+
+<p class="limitations">
+  Limitations: FAA wildlife-strike reporting is not a complete census of all strikes;
+  reported damage may have missingness or reporting bias; feature importance (see
+  results/damage/) shows predictive association, not causation.
+</p>
+{% endblock %}

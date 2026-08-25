@@ -1,0 +1,11 @@
+# Development-only dependencies (testing, linting). Install with:
+#   pip install -r requirements.txt -r requirements-dev.txt
+
+pytest
+pytest-cov
+ruff
+
+# Optional explainability - only imported if present (see
+# src/birdstrikegeo/evaluation/explainability.py). Not required for the
+# core pipeline or test suite to pass.
+shap

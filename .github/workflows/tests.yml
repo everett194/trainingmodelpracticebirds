@@ -1,0 +1,64 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+          pip install -e .
+
+      - name: Lint (ruff)
+        run: ruff check src scripts tests app.py
+        continue-on-error: true # style issues shouldn't block the build; failures are still visible in the log
+
+      - name: Run test suite
+        run: pytest tests/ -v
+
+      - name: Generate sample data
+        run: python scripts/generate_sample_data.py
+
+      - name: Run sample data-preparation pipeline
+        run: python scripts/prepare_data.py --mode sample
+
+      - name: Run sample geospatial-feature pipeline
+        run: python scripts/build_geospatial_features.py --mode sample
+
+      - name: Verify geospatial outputs were created
+        run: |
+          test -f data/processed/layers/airports.geojson
+          test -f data/processed/layers/trektellen_sites.geojson
+          test -f data/processed/layers/airport_period_activity.geojson
+          test -f data/processed/layers/airport_buffers_50km.geojson
+          echo "All expected geospatial layers present."
+
+      - name: Train sample models (baselines + neural net)
+        run: python scripts/train_models.py --task damage --mode sample
+
+      - name: Verify no real raw data or credentials are committed
+        run: |
+          # data/raw/ should contain nothing but its README and .gitkeep.
+          if [ -n "$(find data/raw -type f ! -name 'README.md' ! -name '.gitkeep')" ]; then
+            echo "ERROR: unexpected files found in data/raw/ (real data must never be committed):"
+            find data/raw -type f ! -name 'README.md' ! -name '.gitkeep'
+            exit 1
+          fi
+          # .env must never be committed (only .env.example).
+          if [ -f .env ]; then
+            echo "ERROR: a real .env file is present in the repository."
+            exit 1
+          fi
+          echo "No committed real data or credential files found."

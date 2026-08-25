@@ -1,0 +1,13 @@
+{
+  "source_name": "synthetic_fixture (generate_sample_data.py)",
+  "source_url": "",
+  "download_date": "",
+  "access_method": "generated_locally",
+  "permission_or_license": "not_applicable_synthetic_data",
+  "contact_or_citation": "",
+  "geographic_scope": "synthetic CONUS-like and Europe-like bounding boxes",
+  "temporal_scope": "2023-01-01 to 2024-12-31",
+  "notes": "This is a SYNTHETIC FIXTURE, not a real Trektellen export. It exists only to exercise the ingestion/feature/model pipeline end to end. Real Trektellen data requires its own provenance record with a real source_url, download_date, and permission_or_license - see DATA_DOWNLOAD_GUIDE.md.",
+  "data_origin": "synthetic_fixture",
+  "operational_use": false
+}

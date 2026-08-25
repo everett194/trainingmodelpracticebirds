@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Synthetic Demo — BirdStrikeGeo{% endblock %}
+{% set active_mode = "synthetic" %}
+{% block heading %}1. Synthetic Educational Demo{% endblock %}
+{% block subheading %}A tiny PyTorch network (8→6→4→1) trained on entirely synthetic, hand-designed data.{% endblock %}
+{% block content %}
+<div class="disclaimer">
+  This mode is the ORIGINAL educational project preserved from before BirdStrikeGeo
+  existed. It has no connection to real FAA or Trektellen data - see
+  <code>synthetic_demo/README.md</code> for the full explanation of every ML concept involved.
+</div>
+
+{% if model_missing %}
+  <div class="error">No trained model found. Run <code>cd synthetic_demo && python train.py</code> first, then reload this page.</div>
+{% endif %}
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+{% if result %}
+  <div class="card result">
+    <h2>Neural network output</h2>
+    <div class="big-number">{{ "%.1f"|format(result.probability_pct) }}%</div>
+    <span class="badge {{ 'elevated' if result.classification == 'ELEVATED' else 'lower' }}">{{ result.classification }} RISK</span>
+    <div class="meta">Raw model output (logit): {{ "%.4f"|format(result.logit) }}</div>
+  </div>
+{% endif %}
+
+<div class="card">
+  <form method="post" action="/synthetic/predict">
+    {% for field in fields %}
+      <div class="field">
+        <label>{{ field.name.replace('_', ' ')|title }} <span class="hint">[{{ field.low }}–{{ field.high }}]</span></label>
+        <input type="number" step="any" name="{{ field.name }}" value="{{ field.value }}"
+          {% if not model_missing %}required{% endif %} {% if model_missing %}disabled{% endif %}>
+      </div>
+    {% endfor %}
+    <button type="submit" {% if model_missing %}disabled{% endif %}>Predict (synthetic demo)</button>
+  </form>
+</div>
+{% endblock %}

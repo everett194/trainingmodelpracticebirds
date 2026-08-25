@@ -1,0 +1,79 @@
+# configs/damage_model.yaml
+#
+# Task A: reported-strike damage prediction.
+# Estimated probability of aircraft damage, CONDITIONAL ON a reported
+# wildlife strike. Never interpret as the probability of a strike
+# occurring - see README.md and MODEL_CARD.md.
+
+random_seed: 42
+
+input_paths:
+  sample:
+    faa_strikes: data/sample/faa_strikes_sample.csv
+  real:
+    faa_strikes: data/raw/faa_wildlife_strikes.csv
+
+output_paths:
+  processed_dir: data/processed
+  interim_dir: data/interim
+  models_dir: models/damage
+  results_dir: results/damage
+
+# How the binary target is constructed from damage_flag / damage_level.
+# See birdstrikegeo.features.build_damage_features.make_damage_target.
+target_definition:
+  target_column: damage
+  positive_values: ["Y", "YES", "TRUE", "1", "DAMAGE"]
+  negative_values: ["N", "NO", "FALSE", "0", "NONE", "N/A - NO DAMAGE"]
+  # Anything not matching either list -> target is missing (excluded from
+  # supervised training, reported separately in the quality report).
+
+# Fields that must NEVER reach the model feature matrix because they
+# describe the strike's outcome, not information known beforehand.
+# Mirrors birdstrikegeo.schemas.faa.FORBIDDEN_LEAKAGE_COLUMNS - kept here
+# too so the leakage check is config-driven, not just hardcoded.
+forbidden_leakage_columns:
+  - damage_flag
+  - damage_level
+  - effect_on_flight
+  - parts_damaged
+  - repair_cost
+  - other_cost
+  - injuries
+  - fatalities
+  - narrative
+
+# Categories seen fewer than this many times in the training set are
+# grouped into an explicit "rare_other" bucket rather than one-hot
+# encoded individually (keeps the feature space bounded and avoids
+# spurious very-rare-category noise).
+rare_category_threshold: 20
+
+# Chronological split fractions (oldest -> training, middle -> validation,
+# newest -> test). Real-data boundaries are computed from actual
+# incident_date values; the sample workflow uses the same code path on a
+# much shorter date range.
+chronological_split:
+  train_fraction: 0.70
+  validation_fraction: 0.15
+  test_fraction: 0.15
+
+model:
+  hidden_layer_sizes: [64, 32]
+  dropout: [0.20, 0.10]
+  learning_rate: 0.001
+  batch_size: 64
+  maximum_epochs: 200
+  early_stopping_patience: 15
+  # "training-set-derived" = computed from the observed class balance in
+  # the training split, not hand-tuned.
+  class_weighting: training_set_derived
+
+# What the decision threshold is chosen to optimize on the validation
+# split. Options: "f1", "balanced_accuracy", "youden_j".
+threshold_objective: f1
+
+baselines:
+  - dummy
+  - logistic_regression
+  - histogram_gradient_boosting

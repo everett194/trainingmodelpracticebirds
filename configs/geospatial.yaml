@@ -1,0 +1,78 @@
+# configs/geospatial.yaml
+#
+# Task B: airport-period wildlife activity index, and shared geospatial
+# settings used by both tasks. See GEOSPATIAL_METHODS.md for the
+# reasoning behind the CRS strategy and distance-decay function.
+
+random_seed: 42
+
+input_paths:
+  sample:
+    trektellen_sites: data/sample/trektellen_counts_sample.csv
+    airports: data/sample/airports_sample.geojson
+  real:
+    trektellen_sites: data/raw/trektellen_sites.csv
+    trektellen_counts: data/raw/trektellen_counts.csv
+    airports: data/raw/airports.geojson
+    hourly_weather: data/raw/hourly_weather.parquet
+
+output_paths:
+  interim_dir: data/interim
+  processed_dir: data/processed
+  layers_dir: data/processed/layers
+  results_dir: results/activity
+
+# CRS strategy: raw lat/lon is always stored in WGS84 (EPSG:4326).
+# Distance/buffer math is always done in a PROJECTED crs, never directly
+# in degrees. See GEOSPATIAL_METHODS.md for the full writeup and
+# tradeoffs discussed with the Esri analyst (ESRI_DISCUSSION_NOTES.md).
+crs_strategy:
+  storage_crs: "EPSG:4326"
+  regions:
+    conus:
+      # NAD83 / Conus Albers - equal-area, good for CONUS-wide distance
+      # and area calculations.
+      projected_crs: "EPSG:5070"
+      bbox: [-125.0, 24.0, -66.0, 50.0]
+    europe:
+      # ETRS89-extended / LAEA Europe - equal-area, standard Esri/INSPIRE
+      # choice for pan-European analysis.
+      projected_crs: "EPSG:3035"
+      bbox: [-25.0, 34.0, 45.0, 72.0]
+  # Anything outside the above regions, or any analysis that spans
+  # multiple regions (e.g. comparing a US and a European airport in the
+  # same query), falls back to ellipsoidal geodesic distance (pyproj.Geod)
+  # rather than forcing a single ill-fitting projection.
+  fallback: geodesic
+
+trektellen_radii_km: [50, 100, 250]
+
+trektellen_lookback_windows:
+  - "24h"
+  - "3d"
+  - "7d"
+  - "14d"
+
+# Distance-decay weighting used by the "distance-weighted aggregation"
+# spatial option (see birdstrikegeo.geo.spatial_join). Simple exponential
+# decay, chosen for transparency over a fitted interpolation surface -
+# see GEOSPATIAL_METHODS.md.
+distance_decay:
+  function: exponential
+  half_life_km: 50
+  max_radius_km: 250
+
+spatial_aggregation_default: nearest_site  # or: distance_weighted
+
+weather_join_tolerance:
+  max_distance_km: 100
+  max_age_hours: 3
+
+migration_season:
+  # Northern-hemisphere default; documented as a simplification in
+  # MODEL_CARD.md limitations. Real per-region/per-species phenology is
+  # out of scope for the initial version.
+  spring_start_month: 3
+  spring_end_month: 5
+  fall_start_month: 8
+  fall_end_month: 10

@@ -1,9 +1,46 @@
 .venv/
+venv/
 __pycache__/
 *.pyc
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store
 
+# Secrets - never commit real credentials
+.env
+
+# --- synthetic_demo (self-contained educational project) ---
 # Generated artifacts - reproducible via generate_data.py / train.py
-data/*.csv
-models/*.pt
-results/*.json
-results/*.png
+synthetic_demo/data/*.csv
+synthetic_demo/models/*.pt
+synthetic_demo/results/*.json
+synthetic_demo/results/*.png
+
+# --- BirdStrikeGeo real/raw data ---
+# Real datasets are large, potentially license-restricted, and must be
+# downloaded by the user (see DATA_DOWNLOAD_GUIDE.md) - never committed.
+data/raw/*.csv
+data/raw/*.xlsx
+data/raw/*.geojson
+data/raw/*.parquet
+!data/raw/README.md
+!data/raw/.gitkeep
+
+# Interim/processed data is regeneratable from raw + sample data via the
+# CLI pipeline - keep the repo lean.
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Trained models, evaluation outputs, and exported geospatial layers are
+# all reproducible from the sample or real pipeline.
+models/*
+!models/.gitkeep
+results/*
+!results/.gitkeep
+
+# Sample fixtures ARE committed (data/sample/) since they're small,
+# synthetic, and needed for the repo to be runnable out of the box - do
+# not add a blanket ignore for data/sample/.

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Activity Explorer — BirdStrikeGeo{% endblock %}
+{% set active_mode = "activity" %}
+{% block heading %}3. Airport Wildlife Activity Explorer{% endblock %}
+{% block subheading %}Task B — a relative activity_index built from nearby Trektellen monitoring observations.{% endblock %}
+{% block sample_banner %}
+{% if using_sample_data %}<div class="sample-banner">SAMPLE DATA — NOT A REAL RESULT</div>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="disclaimer">
+  <code>activity_index</code> is a relative, coverage-adjusted index (0–1), NOT a
+  calibrated probability of anything, and NOT a strike-probability forecast. Its
+  usefulness depends entirely on how close and how recent the nearest Trektellen
+  monitoring is — see the coverage details below every result.
+</div>
+
+{% if data_missing %}
+  <div class="error">No airport/Trektellen data found. Run <code>python scripts/generate_sample_data.py</code> first, then reload this page.</div>
+{% endif %}
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+{% if result %}
+  <div class="card result">
+    <h2>Activity index</h2>
+    {% if result.activity_index is not none %}
+      <div class="big-number">{{ "%.3f"|format(result.activity_index) }}</div>
+    {% else %}
+      <div class="big-number">n/a</div>
+      <div class="warn">{{ result.coverage_caveat }}</div>
+    {% endif %}
+    {% if result.coverage_caveat and result.activity_index is not none %}
+      <div class="warn">{{ result.coverage_caveat }}</div>
+    {% endif %}
+    <div class="meta">Basis: {{ result.activity_index_basis }}</div>
+    <div class="meta">Query time (UTC): {{ result.query_timestamp_utc }}</div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0; font-size:1rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">Coverage details</h2>
+    <table>
+      <tr><td>Trektellen available</td><td>{{ result.features.trektellen_available }}</td></tr>
+      <tr><td>Nearest site distance</td><td>{{ "%.1f km"|format(result.features.distance_to_nearest_trektellen_site_km) if result.features.distance_to_nearest_trektellen_site_km is not none else "n/a" }}</td></tr>
+      <tr><td>Age of most recent nearby observation</td><td>{{ "%.1f hours"|format(result.features.nearest_site_observation_age_hours) if result.features.nearest_site_observation_age_hours is not none else "n/a" }}</td></tr>
+      <tr><td>Sites used (selected radius)</td><td>{{ result.nearby_sites|length }}</td></tr>
+      <tr><td>Observation effort available</td><td>{{ result.features.observation_effort_available }}</td></tr>
+      <tr><td>Distance warning</td><td>{{ result.features.distance_warning }}</td></tr>
+      <tr><td>Low coverage warning</td><td>{{ result.features.low_coverage_warning }}</td></tr>
+      <tr><td>Birds observed ({{ result.lookback_label }} window)</td><td>{{ result.lookback_total if result.lookback_total is not none else "no session in window (unknown, not zero)" }}</td></tr>
+      <tr><td>Data coverage score</td><td>{{ "%.3f"|format(result.features.data_coverage_score) }}</td></tr>
+      <tr><td>Model/data version</td><td>synthetic_fixture (sample)</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0; font-size:1rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;">Map</h2>
+    <div id="map" style="height:360px; border-radius:8px;"></div>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      const map = L.map('map').setView([{{ result.airport_lat }}, {{ result.airport_lon }}], 7);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+      L.marker([{{ result.airport_lat }}, {{ result.airport_lon }}]).addTo(map).bindPopup("Airport: {{ result.airport_id }}").openPopup();
+      const sites = {{ result.nearby_sites|tojson }};
+      sites.forEach(function(s) {
+        L.circleMarker([s.latitude, s.longitude], {radius: 5, color: '#2563eb'}).addTo(map)
+          .bindPopup(s.site_name + " — " + s.distance_km + " km");
+      });
+    </script>
+  </div>
+{% endif %}
+
+<div class="card">
+  <form method="post" action="/activity/predict">
+    <div class="field">
+      <label>Airport</label>
+      <select name="airport_id" {% if data_missing %}disabled{% endif %}>
+        {% for a in airports %}
+          <option value="{{ a.airport_id }}" {{ "selected" if submitted.get("airport_id") == a.airport_id else "" }}>{{ a.airport_id }} — {{ a.airport_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field"><label>Date</label><input type="date" name="date" value="{{ submitted.get('date', '') }}" {% if data_missing %}disabled{% endif %}></div>
+    <div class="field"><label>Time (UTC)</label><input type="time" name="time" value="{{ submitted.get('time', '12:00') }}" {% if data_missing %}disabled{% endif %}></div>
+    <div class="field">
+      <label>Spatial radius</label>
+      <select name="radius_km" {% if data_missing %}disabled{% endif %}>
+        {% for r in [50, 100, 250] %}
+          <option value="{{ r }}" {{ "selected" if submitted.get("radius_km")|string == r|string else "" }}>{{ r }} km</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Lookback window</label>
+      <select name="lookback" {% if data_missing %}disabled{% endif %}>
+        {% for w in ["24h", "3d", "7d", "14d"] %}
+          <option value="{{ w }}" {{ "selected" if submitted.get("lookback") == w else "" }}>{{ w }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" {% if data_missing %}disabled{% endif %}>Calculate activity index</button>
+  </form>
+</div>
+
+<p class="limitations">
+  Limitations: Trektellen sites are not uniformly distributed; observer effort varies;
+  visible migration counts, captures, and nocturnal flight calls measure different
+  processes; a distant monitoring site may not represent activity at this airport;
+  missing observations do not mean zero birds; this index is not a certified
+  operational risk forecast.
+</p>
+{% endblock %}

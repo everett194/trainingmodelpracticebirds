@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "birdstrikegeo"
+version = "0.1.0.dev0"
+description = "Geospatial ML project for reported wildlife-strike damage prediction and airport-area wildlife activity indexing. Portfolio/educational project, not operational safety software."
+requires-python = ">=3.10"
+readme = "README.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: exercises full pipeline scripts end-to-end via subprocess"]
+
+[tool.ruff]
+line-length = 110
+exclude = ["synthetic_demo", ".venv"]

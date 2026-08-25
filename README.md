@@ -1,455 +1,219 @@
-# Bird-Strike Risk Predictor (Educational Neural Network Demo)
+# BirdStrikeGeo
 
-A tiny PyTorch neural network that predicts "elevated" vs "lower"
-bird-strike risk from 8 numerical inputs.
-
-**This is an educational demo for learning neural network fundamentals.
-It is NOT an operational aviation-safety system.** The training data is
-synthetic, and the relationships between features and risk were made up
-by hand for teaching purposes — they are not scientifically validated.
-Do not use this project, or anything derived from it, to make real
-aviation safety decisions.
-
-If you're new to machine learning, this README explains every concept
-used in the code, in plain language, alongside the actual numbers this
-project produces when you run it.
+A portfolio/educational geospatial machine-learning project exploring
+reported wildlife strikes to aircraft and bird-migration monitoring
+data. **Not operational aviation-safety software.**
 
 ---
 
-## 1. What this project does
+## The problem
 
-1. `generate_data.py` invents 5,000 fake "observations" (weather +
-   bird-activity conditions) and a made-up 0/1 risk label for each one.
-2. `train.py` trains a small neural network (`BirdStrikeNet`, defined in
-   `model.py`) to predict that label from the 8 numbers.
-3. `predict.py` lets you type in 8 numbers by hand and see what the
-   trained network predicts.
+Wildlife strikes to aircraft are a real, ongoing aviation-safety
+concern. Two genuinely different questions come up when studying them:
 
-Nothing here talks to a real weather feed, a real airport, or real bird
-observation data. It's a self-contained sandbox for learning how a
-neural network is built, trained, and used.
+1. **Given that a strike was reported, was it damaging?** Some
+   information is usually known at strike-report time (species, flight
+   phase, speed, conditions) that correlates with whether the aircraft
+   was damaged.
+2. **Is wildlife activity around a given airport, right now, elevated or
+   not?** Birds migrate seasonally and daily; geographic context
+   (proximity to water, migration corridors, monitored bird-activity
+   data) plausibly says something about relative risk exposure.
 
----
+These are **not the same question**, and conflating them is a common
+mistake. BirdStrikeGeo keeps them explicitly separate.
 
-## 2. What is a neural network?
+## What this project actually predicts
 
-A neural network is a function built out of many small, simple pieces —
-here, three **layers** — stacked so the output of one feeds into the
-next. Each layer does simple arithmetic (multiply, add, and optionally
-squash through a nonlinear function). No single layer is smart on its
-own; what makes the *whole* network able to learn complicated patterns is
-the combination of many weighted connections, trained together.
+| Task | Question answered | Trained from |
+|---|---|---|
+| **A — Damage model** | *Given a reported wildlife strike*, estimated probability it caused aircraft damage. | FAA Wildlife Strike Database (real data) or a synthetic sample fixture. |
+| **B — Activity index** | A relative `activity_index` (0–1) for an airport during a time window, from nearby bird-migration monitoring. | A transparent formula over Trektellen observations — **not a trained classifier** (see below). |
 
-Concretely, this network is a plain Python class (`BirdStrikeNet` in
-`model.py`) built from three `nn.Linear` layers.
+**Neither task predicts the probability that a wildlife strike will
+occur.** That would require knowing how many flights *didn't* have a
+strike — a flight-exposure denominator (e.g. BTS T-100 departures) this
+project does not yet have. See "Scientific limitations" below.
 
----
+## Why bird migration and geography matter
 
-## 3. Architecture
+Bird activity near an airport isn't uniform across the year or the day:
+migration season, dawn/dusk timing, proximity to water and wetlands, and
+recent local activity all plausibly shift risk exposure. Task B exists
+to explore whether *publicly available bird-migration monitoring data*
+can say anything useful about that — while being honest that monitoring
+coverage is sparse and uneven, so the resulting index is only as good as
+the nearest available observations (surfaced explicitly via
+`distance_warning` / `low_coverage_warning` on every result).
 
-```
-8 INPUT FEATURES
-   |
-   v
-[8 values]
-   |
-   v
-Linear 8 -> 6      (layer1: 8*6 = 48 weights + 6 biases)
-   |
-   v
-ReLU
-   |
-   v
-Linear 6 -> 4      (layer2: 6*4 = 24 weights + 4 biases)
-   |
-   v
-ReLU
-   |
-   v
-Linear 4 -> 1      (layer3: 4*1 = 4 weights + 1 bias)
-   |
-   v
-[raw logit]
-   |
-   v
-Sigmoid  (applied only in predict.py, not inside the model)
-   |
-   v
-Probability (0-100%)
-   |
-   v
-Lower Risk  <——— 50% threshold ———>  Elevated Risk
-```
+## Current development status
+
+Functional skeleton, running end-to-end **on synthetic sample data**.
+Real-data mode (`--mode real`) is fully wired up in every script and
+fails gracefully — with an exact list of missing files and a pointer to
+`DATA_DOWNLOAD_GUIDE.md` — until you supply real FAA/Trektellen data.
+90 automated tests pass without any real data or network access.
 
 ---
 
-## 4. Why 8 input neurons?
-
-Because we chose 8 measurements to describe the conditions at a given
-moment. Each measurement becomes one number fed into the network, so the
-input layer's size is fixed at 8 — one "slot" per feature. If we added a
-9th feature, we'd need to change `INPUT_SIZE` in `config.py` and retrain.
-
-## 5. What each input neuron represents
-
-Defined in `config.py` (`FEATURE_NAMES`), always in this order:
-
-| # | Feature | Meaning | Typical range used here |
-|---|---------|---------|--------------------------|
-| 1 | `temperature_c` | Air temperature | -20°C to 40°C |
-| 2 | `wind_speed_knots` | Wind speed | 0 to 50 knots |
-| 3 | `visibility_km` | Visibility distance | 0 to 15 km |
-| 4 | `precipitation` | Is it precipitating? | 0 = no, 1 = yes |
-| 5 | `hour_of_day` | Hour on a 24-hour clock | 0 to 23 |
-| 6 | `month` | Calendar month | 1 to 12 |
-| 7 | `distance_to_water_km` | Distance to nearest water body | 0 to 30 km |
-| 8 | `recent_bird_activity` | Subjective recent bird-activity level | 0 to 10 |
-
-These ranges are plausible, hand-picked numbers for a demo — not
-official aviation or ornithological standards.
-
-## 6. What the 6-neuron hidden layer does
-
-It's the first place the network can combine the 8 raw inputs into new,
-learned combinations. Each of its 6 neurons computes its own weighted sum
-of all 8 inputs (plus a bias), so this layer can learn things like "high
-bird activity AND close to water matters more than either alone" — a
-combination no single raw input can express by itself.
-
-## 7. What the 4-neuron hidden layer does
-
-It takes the 6 numbers from the previous layer and combines them further
-into 4 new numbers. Each additional layer lets the network represent
-progressively more abstract combinations of the original inputs. Going
-from 6 down to 4 also gradually funnels the information toward the single
-final answer.
-
-## 8. Why only 1 output neuron?
-
-Because we're solving a **binary** classification problem — there are
-only two possible answers ("lower risk" or "elevated risk"), so we only
-need one number that says how strongly the network leans toward
-"elevated." (A problem with, say, 5 possible categories would typically
-use 5 output neurons instead.)
-
-## 9. What are weights?
-
-Every connection between one layer's outputs and the next layer's neurons
-has an associated **weight**: a single number the network multiplies that
-value by. `nn.Linear(8, 6)` stores a 6×8 grid of weights — one weight for
-every (input, neuron) pair. Weights start out random and are adjusted
-during training so the network's predictions get better. Big weights mean
-"this input strongly influences this neuron"; near-zero weights mean
-"this input barely matters here."
-
-## 10. What are biases?
-
-Each neuron also has one extra learned number, its **bias**, added after
-the weighted sum of inputs. It works like the `+ b` in the line equation
-`y = mx + b`: it lets a neuron shift its output up or down regardless of
-the inputs, giving the network more flexibility than weights alone would.
-
-## 11. What does ReLU do?
-
-ReLU ("Rectified Linear Unit") is an **activation function**:
+## Architecture diagram (Task A — DamageNet)
 
 ```
-ReLU(x) = max(0, x)
+raw strike record (34 FAA fields, alias-resolved)
+        │
+        ▼
+leakage-safe feature selection (damage_flag, cost, injuries, ... BLOCKED)
+        │
+        ▼
+time/season features (cyclical month/hour, dawn/dusk via sunrise-sunset)
+        │
+        ▼
+preprocessing (fit on TRAIN split only)
+  numeric  → impute (median) → standardize
+  categorical → rare-category bucketing → one-hot encode
+        │
+        ▼
+   encoded_input (84 features, sample data)
+        │
+        ▼
+   Linear(64) → ReLU → Dropout(0.20)
+        │
+   Linear(32) → ReLU → Dropout(0.10)
+        │
+   Linear(1)                                    ← raw logit
+        │
+   sigmoid (inference only)
+        │
+        ▼
+"Estimated probability of aircraft damage,
+ conditional on a reported wildlife strike"
 ```
 
-It keeps positive numbers unchanged and turns negative numbers into 0.
-Without a nonlinear function like this between layers, stacking multiple
-`Linear` layers would mathematically collapse into a single `Linear`
-layer no matter how many you stack — the network could only ever learn
-straight-line relationships. ReLU's small "bend" at zero is what lets the
-network learn curved, complex patterns.
-
-## 12. What is a loss function?
-
-A **loss function** produces a single number that measures how wrong the
-model's predictions are — lower is better. It's what training is
-*minimizing*. Without a loss function, there'd be no way to tell the
-optimizer which direction "better" even is.
-
-## 13. What does BCEWithLogitsLoss do?
-
-`BCEWithLogitsLoss` ("Binary Cross-Entropy with Logits") is the loss
-function used to train `BirdStrikeNet`. For each example it:
-
-1. Takes the model's raw output (the **logit** — see section 19).
-2. Internally applies a sigmoid to turn it into a 0-1 probability.
-3. Compares that probability to the true 0/1 label, penalizing the model
-   more heavily the more confidently wrong it was.
-
-We use the "with logits" version instead of applying `sigmoid()`
-ourselves plus plain `BCELoss` because combining both steps into one
-PyTorch operation is more numerically stable. This is exactly why
-`model.py`'s `forward()` does *not* end with a `Sigmoid` layer — the loss
-function expects the raw logit.
-
-## 14. What is an optimizer?
-
-The **optimizer** is the algorithm that updates the model's weights and
-biases after each batch of examples, using the gradients computed by
-backpropagation. The loss function says "how wrong are we"; the optimizer
-decides "how do we change the weights to be less wrong."
-
-## 15. What does Adam do?
-
-`Adam` is the optimizer used in `train.py`. It's a popular, general-purpose
-choice because it automatically adapts the "step size" for each
-individual weight based on the recent history of that weight's gradients,
-which in practice converges faster and more reliably than plain gradient
-descent, with little manual tuning required.
-
-## 16. What is an epoch?
-
-One **epoch** = one full pass through the entire training dataset. This
-project trains for 100 epochs (`NUM_EPOCHS` in `config.py`), meaning the
-network sees all 4,000 training examples 100 times, adjusting its weights
-a little more after each batch, each pass.
-
-## 17. What does backpropagation mean?
-
-After computing the loss for a batch, PyTorch automatically works
-*backwards* through the network (`loss.backward()`) to compute the
-gradient of the loss with respect to every single weight and bias — i.e.
-"if I nudge this one weight up slightly, does the loss go up or down, and
-by how much?" The optimizer then uses those gradients to nudge each
-weight in the direction that reduces the loss (`optimizer.step()`). This
-backward pass is what "backpropagation" refers to.
-
-## 18. What does training actually change inside the model?
-
-Only the numbers inside the three `Linear` layers — the weights and
-biases. The architecture itself (3 layers, sized 8→6→4→1) never changes
-during training; training just searches for weight/bias values that make
-the network's predictions match the training labels as closely as
-possible.
-
-## 19. Training vs. inference
-
-- **Training** (`train.py`): shown labeled examples, computes loss,
-  backpropagates, and updates weights. This is the "learning" phase.
-- **Inference** (`predict.py`): the weights are already fixed (loaded
-  from the saved `.pt` file); we just run new, unlabeled inputs forward
-  through the network to get a prediction. No learning, no
-  backpropagation, no weight updates happen during inference.
-
-## 20. Logit vs. probability
-
-`BirdStrikeNet`'s final layer has no activation function, so calling the
-model directly returns a raw number called a **logit** — it can be any
-real number (negative, zero, or positive) and isn't a probability by
-itself. `predict.py` applies `torch.sigmoid()` to convert it into an
-easy-to-read 0-100% **probability**:
+## Data-flow diagram (both tasks)
 
 ```
-probability = 1 / (1 + e^(-logit))
-```
-
-A logit of 0 corresponds to exactly 50% probability. Positive logits lean
-toward "elevated risk," negative logits lean toward "lower risk" — the
-further from 0, the more confident the model is.
-
-## What's inside the `.pt` model file?
-
-`models/bird_strike_model.pt` is a PyTorch checkpoint saved with
-`torch.save()`. It's a dictionary containing:
-
-- `model_state_dict` — every learned weight and bias in the network (a
-  mapping from layer name to a tensor of numbers).
-- `feature_mean` / `feature_std` — the exact normalization statistics
-  computed from the training data, so new inputs at prediction time get
-  normalized exactly the same way the training data was.
-
-It does **not** contain the model's code/architecture — that's why
-`predict.py` still imports `BirdStrikeNet` from `model.py` and re-creates
-an empty network before loading the saved weights into it.
-
----
-
-## File structure
-
-```
-config.py            All constants: feature names, ranges, seed, hyperparameters, paths
-model.py              BirdStrikeNet neural network definition
-dataset.py            PyTorch Dataset: reads CSV, normalizes features, returns tensors
-generate_data.py       Creates the synthetic dataset (data/train.csv, data/test.csv)
-train.py              Trains the model, evaluates it, saves weights + metrics
-inference.py           Shared load-model / run-a-prediction helpers
-predict.py             Interactive CLI: enter 8 values, get a prediction
-inspect_weights.py     Prints the learned weights/biases; demos manually editing one
-app.py                 Local Flask website: same prediction, in a browser
-templates/index.html   The web page app.py renders
-data/                 Generated CSV datasets
-models/               Saved trained model weights (.pt)
-results/              Saved metrics (.json) and the training loss curve (.png)
+data/raw/*  (real, gitignored)  ──┐
+data/sample/*  (synthetic, committed)  ──┤
+                                          ▼
+                              scripts/*.py  (birdstrikegeo.cli wraps these)
+                                          │
+        ┌─────────────────────────────────┼─────────────────────────────────┐
+        ▼                                 ▼                                 ▼
+ prepare_data.py                build_geospatial_features.py       train_models.py
+ (FAA ingest → target →         (Trektellen ingest → CRS-aware      (baselines + DamageNet
+  leakage-safe features →        joins → activity features →        → threshold tuning →
+  chronological split)           GeoJSON/GPKG/GeoParquet exports)    evaluation → checkpoint)
+        │                                 │                                 │
+        ▼                                 ▼                                 ▼
+data/processed/*                data/processed/layers/*          models/damage/*.pt
+results/damage/*_quality*.json  results/activity/*_quality*.json  results/damage/*
+                                          │
+                                          ▼
+                                       app.py  (Flask, 3 modes)
+                                  /synthetic  /damage  /activity
 ```
 
 ---
 
-## How to run it
+## Quick start (sample data — no downloads required)
 
 ```bash
-pip install -r requirements.txt
-python generate_data.py
-python train.py
-python predict.py       # terminal interface
-python app.py            # or: web interface at http://localhost:5001
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
+pip install -e .
+
+python -m birdstrikegeo.cli generate-sample-data
+python -m birdstrikegeo.cli prepare-data --mode sample
+python -m birdstrikegeo.cli build-geo-features --mode sample
+python -m birdstrikegeo.cli train --task damage --mode sample
+python -m birdstrikegeo.cli evaluate --task damage --mode sample
+python -m birdstrikegeo.cli export-layers --mode sample
+python -m birdstrikegeo.cli run-app
+# open http://localhost:5001
 ```
 
-### What actually happened when we ran this
-
-`python generate_data.py`:
-
-```
-Generating 5000 synthetic bird-strike-risk observations...
-Label balance: 50.4% elevated risk, 49.6% lower risk
-Saved 4000 training examples to data/train.csv
-Saved 1000 testing examples to data/test.csv
-```
-
-`python train.py`:
-
-```
-Training BirdStrikeNet for 100 epochs...
-
-Epoch 1/100 - Loss: 0.6948
-Epoch 10/100 - Loss: 0.5133
-Epoch 20/100 - Loss: 0.5100
-...
-Epoch 100/100 - Loss: 0.5053
-
-Training complete.
-Test accuracy: 75.4%
-Test precision: 74.3%
-Test recall: 78.2%
-Test loss: 0.4972
-Model saved to models/bird_strike_model.pt
-Metrics saved to results/training_metrics.json
-Loss curve saved to results/loss_curve.png
-```
-
-These numbers are honest — not artificially inflated. ~75% accuracy on
-a deliberately noisy synthetic dataset (see `generate_data.py` — the
-labels are sampled probabilistically, not a hard deterministic rule)
-is a reasonable, believable result for a 3-layer network this small.
-
-`python predict.py` then asks for the 8 values interactively and prints
-something like:
-
-```
-## Neural network output
-Raw model output (logit): 3.7181
-Elevated bird-strike-risk probability: 97.6%
-Classification: ELEVATED
-```
-
----
-
-## Web interface
-
-`predict.py` works in the terminal; `app.py` is the same prediction, in a
-browser, via a tiny local website built with [Flask](https://flask.palletsprojects.com/).
+Or run the test suite (no data generation needed first — it generates
+its own fixtures):
 
 ```bash
-python app.py
+pytest tests/ -v
 ```
 
-Then open **http://localhost:5001** in your browser. You'll see a form
-with all 8 inputs; submit it and the same probability/logit/classification
-`predict.py` would print appears at the top of the page instead.
-
-(Port 5001, not 5000, because macOS's AirPlay Receiver claims port 5000 by
-default and will reject the connection with an "unauthorized"-looking error
-if something else tries to use it.)
-
-Under the hood, `app.py` doesn't reimplement any ML logic - it calls the
-exact same `inference.load_model()` / `inference.predict()` functions that
-`predict.py` uses. Flask's only job is turning the submitted form into 8
-numbers and rendering the result as HTML (`templates/index.html`).
-
-This is a **local-only development server** (`app.run(debug=True)`) meant
-for you to interact with on your own machine - it isn't set up for, and
-shouldn't be exposed to, the public internet.
-
-If you haven't trained a model yet, the page will tell you to run
-`python train.py` first instead of erroring.
-
----
-
-## Visualizing the loss curve
-
-`train.py` records the average loss after every epoch and saves a plot to
-`results/loss_curve.png` using matplotlib. Open that file (Finder, VS
-Code, or an image viewer) after training to see the classic "sharp drop,
-then flattens out" shape of a network converging — the same numbers that
-are printed to the console every 10 epochs, just visualized over all 100.
-
-## Inspecting and manually editing weights
-
-Run:
+## Moving to real data
 
 ```bash
-python inspect_weights.py
+# after downloading real files into data/raw/ - see DATA_DOWNLOAD_GUIDE.md
+python -m birdstrikegeo.cli validate-data --mode real
+python -m birdstrikegeo.cli prepare-data --mode real
+python -m birdstrikegeo.cli build-geo-features --mode real
+python -m birdstrikegeo.cli train --task damage --mode real
 ```
 
-This does two things:
-
-1. **Prints every learned weight and bias**, layer by layer, so you can
-   see the actual numbers `train.py` arrived at — no more "black box."
-2. **Manually edits one weight by hand** (flips the sign of whichever
-   `layer3` weight is currently contributing the most to a fixed example
-   prediction) and shows the prediction probability before and after —
-   e.g. `97.63% -> 35.38%` — so you can see, directly, that "training" is
-   really just search over these numbers, and that a single number inside
-   the network can meaningfully swing its output.
-
-The edit only exists in that script's memory — `models/bird_strike_model.pt`
-is left untouched. If you want to experiment further, load the model the
-same way (see `load_model()` in `inspect_weights.py`), change any
-`model.layerN.weight.data[row, col]` or `model.layerN.bias.data[i]` value
-you like, and either:
-
-- run a prediction on it in the same script (like the demo does), or
-- save your edited version to a new file so it persists:
-  ```python
-  torch.save(
-      {"model_state_dict": model.state_dict(), "feature_mean": feature_mean, "feature_std": feature_std},
-      "models/bird_strike_model_edited.pt",
-  )
-  ```
-
-Note this is purely for building intuition — it's not how the model
-actually learns. Real training (`train.py`) adjusts *all* the weights and
-biases together, guided by gradients computed from thousands of labeled
-examples, not one number changed by a human's guess.
+Every `--mode real` command checks for its required files first and
+exits with an exact list of what's missing (never a raw stack trace) if
+something isn't there yet.
 
 ---
 
-## A note on the synthetic data
+## The five kinds of data in this repository
 
-Because there's no real aviation bird-strike dataset here, `generate_data.py`
-invents one. It hand-codes plausible-sounding rules (e.g. "closer to
-water raises risk," "dawn/dusk hours raise risk," "spring/fall migration
-months raise risk," "poor visibility raises risk") into a risk score,
-squashes that score into a probability with a sigmoid, and then samples
-the final 0/1 label as a weighted coin flip — so the data is realistically
-noisy rather than a perfectly separable toy problem.
+| Kind | Where | Real or synthetic? | Used by |
+|---|---|---|---|
+| **Synthetic educational data** | `synthetic_demo/` | 100% synthetic, hand-designed | The original 8-input neural-network demo — unrelated to BirdStrikeGeo's real tasks. |
+| **Sample integration fixtures** | `data/sample/` | 100% synthetic, deterministic (seed 42) | Exercises the full BirdStrikeGeo pipeline (`--mode sample`) without downloads. |
+| **Real FAA strike data** | `data/raw/faa_wildlife_strikes.csv` | Real, user-downloaded | Task A, `--mode real`. |
+| **Real Trektellen data** | `data/raw/trektellen_*.csv` | Real, user-downloaded, requires provenance record | Task B, `--mode real`. |
+| **Future flight-exposure data** | `data/raw/bts_t100_departures.csv` (placeholder) | Real, not yet integrated | A future, more rigorous strike-*probability* model — see limitations below. |
 
-**These relationships are made up for this demo and are not scientifically
-validated bird-strike-risk relationships.** See the comments in
-`generate_data.py` for the exact rules used.
+## Project structure
 
----
+```
+synthetic_demo/          Original educational demo (preserved, self-contained)
+src/birdstrikegeo/       The BirdStrikeGeo package
+  schemas/                 Canonical field definitions (FAA, Trektellen, airports, weather)
+  data/                     Ingestion, column-alias resolution, validation, quality reports
+  geo/                      CRS strategy, spatial/temporal joins, layer exports, ArcGIS adapter
+  features/                 Target construction, leakage guard, damage/activity feature building
+  models/                   DamageNet (PyTorch), baselines, activity_index formula, checkpoints
+  training/                 Chronological splitting, DamageNet training loop, threshold tuning
+  evaluation/                Metrics, calibration, bootstrap CIs, explainability, plots
+  inference/                 predict_damage(), calculate_activity_for_airport()
+  cli.py                    python -m birdstrikegeo.cli ...
+scripts/                  Standalone, independently-runnable pipeline scripts
+configs/                  YAML configuration (no important choices hardcoded)
+data/{raw,sample,interim,processed}/
+templates/, static/, app.py    Flask app: 3 modes (synthetic / damage / activity)
+tests/                    90 tests, no real data or network access required
+.github/workflows/tests.yml    CI: sample pipeline + tests on every push
+```
 
-## Ideas for extending this (optional, for further learning)
+## Documentation map
 
-- Add more epochs or a learning-rate schedule and see how the loss curve changes.
-- Try a wider or deeper network and compare test accuracy.
-- Plot the training loss over epochs.
-- Add a validation split to watch for overfitting separately from the test set.
+- **`DATA_CARD.md`** — every dataset, real and synthetic, and its known limitations.
+- **`MODEL_CARD.md`** — both models' architecture, training, sample-data results, and limitations.
+- **`GEOSPATIAL_METHODS.md`** — CRS strategy, distance-decay weighting, layer exports, ArcGIS interoperability.
+- **`ESRI_DISCUSSION_NOTES.md`** — a project summary and 20 open GIS design questions for a real analyst.
+- **`DATA_DOWNLOAD_GUIDE.md`** — exactly what to download and where to put it.
 
-None of these are required — the current project already demonstrates
-the full train → evaluate → predict loop end to end.
+## Scientific limitations
+
+- FAA wildlife-strike reporting is not a complete census of all strikes.
+- Trektellen sites are not uniformly distributed.
+- Observer effort varies session to session.
+- Visible migration counts, captures, and nocturnal flight calls measure
+  different processes and are never silently combined.
+- A distant monitoring site may not represent activity at a given
+  airport.
+- Missing observations do not mean zero birds.
+- Reported damage may have missingness or reporting bias.
+- Correlation does not demonstrate causation.
+- An activity index is not a certified operational risk forecast.
+- Results from Europe (denser Trektellen coverage) may not generalize to
+  North America.
+- Trektellen's usefulness for a given airport depends entirely on
+  spatial and temporal proximity of the nearest monitoring.
+- A true strike-*probability* model requires defensible non-strike or
+  flight-exposure observations this project does not yet have.
+
+This project is a demonstration of a responsible approach to a hard,
+data-limited problem — not a finished operational tool.
