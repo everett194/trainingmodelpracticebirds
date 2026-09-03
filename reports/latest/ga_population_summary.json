@@ -1,0 +1,33 @@
+{
+  "source_filename": "faa_wildlife_strikes.xlsx",
+  "source_sha256": "a2b21612b0abde685b9b6772cbd6d659d1fd93299c0d6d28cb96fa485a1ce99f",
+  "total_source_records": 353969,
+  "ga_filter_description": "OPERATOR in {BUSINESS, PRIVATELY OWNED} AND AC_CLASS == 'A' (airplane) - PRINCIPAL population",
+  "population_counts": {
+    "confirmed_business_or_private": {
+      "count": 33474,
+      "definition": "OPERATOR in {BUSINESS, PRIVATELY OWNED} (all aircraft classes)"
+    },
+    "confirmed_business_or_private_fixed_wing": {
+      "count": 29522,
+      "definition": "OPERATOR in {BUSINESS, PRIVATELY OWNED} AND AC_CLASS == 'A' (airplane) - PRINCIPAL population"
+    },
+    "light_fixed_wing_ga": {
+      "count": 19516,
+      "definition": "principal population AND AC_MASS in {1, 2} (<= 5,700 kg)"
+    },
+    "light_piston_ga": {
+      "count": 14017,
+      "definition": "light fixed-wing GA AND TYPE_ENG == 'A' (reciprocating/piston)"
+    }
+  },
+  "principal_population_count": 29522,
+  "target_report": {
+    "n_positive": 6883,
+    "n_negative": 22639,
+    "n_excluded_unknown": 0,
+    "n_inconsistent_indicated_vs_level": 2,
+    "positive_class_rate": 0.23314816069371994
+  },
+  "n_eligible_for_training": 29522
+}

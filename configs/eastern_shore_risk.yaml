@@ -1,0 +1,37 @@
+# configs/eastern_shore_risk.yaml
+#
+# Exploratory bird-strike risk analysis: trains a CatBoost regressor on
+# the FAA-wide GA damage-severity target (see birdstrikegeo.hazard), then
+# extrapolates a species-level risk read for one Eastern Shore of
+# Maryland banding station using its 2025 Trektellen export. NOT the
+# calibrated GA conditional-damage milestone (configs/ga_damage.yaml) -
+# this is a lighter, explanatory risk-ranking analysis, not a tuned
+# production model.
+
+random_seed: 42
+
+paths:
+  ga_filtered_parquet: data/processed/ga/ga_filtered.parquet
+  trektellen_csv: data/raw/trektellen_2025_year_totals.csv
+  models_dir: models/hazard
+  reports_dir: reports/latest
+
+# Same chronological split boundaries as the GA damage milestone, for
+# consistency and to reuse the same "no future leakage" reasoning.
+split:
+  train_end_year: 2019
+  validation_end_year: 2022
+
+catboost:
+  iterations: 500
+  depth: 6
+  learning_rate: 0.05
+  early_stopping_rounds: 50
+
+trektellen:
+  station_id: FBBO
+  season_year: 2025
+  # Months present as columns in the year-totals export. mar/apr..nov -
+  # not all necessarily monitored (0 observation hours = unmonitored,
+  # not zero activity - see hazard.trektellen_season).
+  month_columns: [mar, apr, may, jun, jul, aug, sep, oct, nov]

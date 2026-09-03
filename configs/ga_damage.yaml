@@ -1,0 +1,69 @@
+# configs/ga_damage.yaml
+#
+# GA conditional-damage milestone: predicts P(reported aircraft damage |
+# a wildlife strike occurs), for the confirmed business/private
+# fixed-wing GA population, from the FAA Wildlife Strike Database alone.
+# NOT a strike-occurrence model - see README "Scientific limitations".
+
+random_seed: 42
+
+paths:
+  raw_workbook: data/raw/faa_wildlife_strikes.xlsx
+  raw_cache_parquet: data/interim/ga/faa_raw_cache.parquet
+  processed_dir: data/processed/ga
+  models_dir: models/ga
+  results_dir: results/ga
+  reports_dir: reports/latest
+
+# Split years chosen after inspecting the actual GA-population year
+# distribution (see ga_population_summary.json) to land close to a
+# 70/15/15 split on real calendar-year boundaries. The current calendar
+# year is under-counted due to normal FAA reporting lag - a documented
+# limitation, not a bug.
+split:
+  train_end_year: 2019
+  validation_end_year: 2022
+  # test = everything after validation_end_year
+
+# One geographic robustness check (step 8): held-out FAA regions never
+# seen in training/validation, evaluated separately from the chronological
+# test set.
+geographic_holdout:
+  region_column: faa_region
+  held_out_regions: ["AAL", "FGN"]  # Alaskan and Foreign regions - smallest, most distinct
+
+feature_modes: [operational_core, reduced_preflight]
+
+rare_category_threshold: 20
+
+catboost:
+  iterations: 500
+  depth: 6
+  learning_rate: 0.05
+  loss_function: Logloss
+  early_stopping_rounds: 50
+  # Small, validation-driven search over only consequential params (step 6)
+  # - never touches the test set.
+  search_grid:
+    depth: [4, 6, 8]
+    learning_rate: [0.03, 0.05, 0.1]
+    l2_leaf_reg: [3, 6]
+
+neural_net:
+  hidden_layer_sizes: [64, 32]
+  dropout: [0.20, 0.10]
+  learning_rate: 0.001
+  batch_size: 64
+  maximum_epochs: 200
+  early_stopping_patience: 15
+
+threshold_objective: f1
+
+calibration:
+  methods: [platt, isotonic]
+  # isotonic needs enough validation points per bin to be trustworthy
+  isotonic_min_validation_rows: 2000
+
+bootstrap:
+  n_resamples: 500
+  confidence_level: 0.95

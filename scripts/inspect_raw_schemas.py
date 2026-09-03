@@ -42,6 +42,12 @@ PATHS = {
     },
 }
 
+# faa_wildlife_strikes is also accepted as .xlsx (see ingest_faa.py) - fall
+# back to it if the .csv form isn't present.
+_REAL_FAA_XLSX = REPO_ROOT / "data" / "raw" / "faa_wildlife_strikes.xlsx"
+if not PATHS["real"]["faa"].exists() and _REAL_FAA_XLSX.exists():
+    PATHS["real"]["faa"] = _REAL_FAA_XLSX
+
 
 def inspect_faa(path: Path) -> None:
     if not path.exists():

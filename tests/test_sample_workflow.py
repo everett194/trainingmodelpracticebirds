@@ -85,8 +85,9 @@ def test_validate_data_real_mode_exits_nonzero_with_missing_files_listed():
 
 @pytest.mark.slow
 def test_prepare_data_real_mode_fails_gracefully_when_data_missing():
-    real_faa = REPO_ROOT / "data" / "raw" / "faa_wildlife_strikes.csv"
-    if real_faa.exists():
+    real_faa_csv = REPO_ROOT / "data" / "raw" / "faa_wildlife_strikes.csv"
+    real_faa_xlsx = REPO_ROOT / "data" / "raw" / "faa_wildlife_strikes.xlsx"
+    if real_faa_csv.exists() or real_faa_xlsx.exists():
         pytest.skip("Real FAA data is present in this environment - graceful-failure path not exercised.")
     result = _run("prepare_data.py", "--mode", "real")
     assert result.returncode == 1

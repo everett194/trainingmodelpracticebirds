@@ -46,8 +46,17 @@ def run(mode: str) -> None:
     missing_required = []
     for name, source in config["sources"].items():
         raw_rel_path = source["path"]
-        path = REPO_ROOT / (SAMPLE_EQUIVALENTS[raw_rel_path] if mode == "sample" else raw_rel_path)
-        exists = path.exists()
+        if mode == "sample":
+            path = REPO_ROOT / SAMPLE_EQUIVALENTS[raw_rel_path]
+            candidates = [path]
+        else:
+            base = REPO_ROOT / raw_rel_path
+            # Also accept any other declared format's extension for this
+            # source (e.g. faa_strikes declares [csv, xlsx] but path is
+            # the .csv form) - see ingest_faa.py, which reads either.
+            candidates = [base.with_suffix(f".{fmt}") for fmt in source.get("formats", [])] or [base]
+        path = next((c for c in candidates if c.exists()), candidates[0])
+        exists = any(c.exists() for c in candidates)
         required = source["required"] and mode == "real"
         status = "OK" if exists else ("MISSING (required)" if required else "missing (optional)")
         print(f"  [{name}] {status}: {path}")

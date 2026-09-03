@@ -13,6 +13,7 @@ pandas
 numpy
 scikit-learn
 matplotlib
+catboost
 
 # Web interface
 flask

@@ -25,7 +25,9 @@ from birdstrikegeo.schemas.faa import FAA_SCHEMA
 FAA_COLUMN_ALIASES: dict[str, tuple[str, ...]] = {
     "record_id": ("INDEX_NR", "RECORD_ID", "INDEX NR", "ID"),
     "incident_date": ("INCIDENT_DATE", "INCIDENT DATE", "DATE"),
-    "incident_time_local": ("TIME", "TIME_OF_DAY", "INCIDENT_TIME", "LOCAL_TIME"),
+    # NOTE: FAA's own "TIME_OF_DAY" column is light conditions
+    # (dawn/day/dusk/night), NOT a clock time - do not alias it here.
+    "incident_time_local": ("TIME", "INCIDENT_TIME", "LOCAL_TIME"),
     "airport_id": ("AIRPORT_ID", "AIRPORTID", "AIRPORT CODE"),
     "airport_name": ("AIRPORT", "AIRPORT_NAME", "AIRPORT NAME"),
     "state": ("STATE",),
@@ -38,7 +40,7 @@ FAA_COLUMN_ALIASES: dict[str, tuple[str, ...]] = {
     "aircraft_model": ("AC_MODEL", "AIRCRAFT_MODEL", "MODEL"),
     "aircraft_type": ("AC_CLASS", "AIRCRAFT_TYPE", "AC_TYPE"),
     "aircraft_mass_class": ("AC_MASS", "AIRCRAFT_MASS", "MASS_CLASS"),
-    "engine_type": ("ENG_TYPE", "ENGINE_TYPE"),
+    "engine_type": ("ENG_TYPE", "ENGINE_TYPE", "TYPE_ENG"),
     "engine_count": ("NUM_ENGS", "ENGINE_COUNT", "NR_ENGINES"),
     "sky_condition": ("SKY", "SKY_CONDITION"),
     "precipitation": ("PRECIPITATION", "PRECIP"),
