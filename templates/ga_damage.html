@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}GA Damage Model — BirdStrikeGeo{% endblock %}
+{% set active_mode = "ga_damage" %}
+{% block heading %}4. GA Conditional-Damage Model{% endblock %}
+{% block subheading %}CatBoost model trained on the confirmed business/private fixed-wing GA population.{% endblock %}
+{% block content %}
+<div class="disclaimer">
+  <strong>Estimated probability of aircraft damage, conditional on a reported wildlife
+  strike, for general-aviation aircraft.</strong> This is NOT the probability that a
+  strike will occur. Scenarios below are named presets built from values actually
+  observed in the training population — see <code>reports/latest/model_receipt.md</code>.
+</div>
+
+{% if model_missing %}
+  <div class="error">No trained GA model found. Run
+    <code>python scripts/ga_prepare_data.py && python scripts/ga_train_models.py</code>
+    first, then reload this page.</div>
+{% endif %}
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+{% if result %}
+  <div class="card result">
+    <h2>Model output</h2>
+    <div class="big-number">{{ "%.1f"|format(result.probability * 100) }}%</div>
+    <span class="badge {{ 'elevated' if 'High' in result.risk_band or 'Elevated' in result.risk_band else 'lower' }}">{{ result.risk_band }}</span>
+    <div class="meta">Scenario: {{ preset_description }}</div>
+    <div class="meta">Uncalibrated model output: {{ "%.1f"|format(result.probability_raw * 100) }}%</div>
+    <div class="meta">Most influential inputs: {{ result.top_features | join(', ') }}</div>
+    <div class="meta">{{ result.disclaimer }}</div>
+  </div>
+{% endif %}
+
+<div class="card">
+  <form method="post" action="/ga-damage/predict">
+    <div class="field">
+      <label>Scenario</label>
+      <select name="preset" {% if model_missing %}disabled{% endif %}>
+        <option value="">-- select --</option>
+        {% for name, description in presets %}
+          <option value="{{ name }}" {{ "selected" if submitted_preset == name else "" }}>{{ description }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" {% if model_missing %}disabled{% endif %}>Predict damage probability</button>
+  </form>
+</div>
+
+<p class="limitations">
+  Limitations: presets only cover a handful of representative scenarios (see
+  <code>src/birdstrikegeo/ga/presets.py</code> for the full field list); feature
+  importance reflects predictive association, not causation.
+</p>
+{% endblock %}

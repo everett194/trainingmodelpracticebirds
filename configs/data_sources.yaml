@@ -63,3 +63,16 @@ sources:
       before any true strike-probability (as opposed to conditional
       damage probability) model can be built responsibly. See
       "Scientific limitations" in README.md.
+
+  ebird_status_trends:
+    required: false
+    path: data/raw/ebird_status_trends/  # per-species-per-week GeoTIFFs, once downloaded
+    formats: [geotiff]
+    description: >
+      eBird Status & Trends weekly relative-abundance rasters (3km
+      resolution, Americas-wide). Not integrated yet - see
+      src/birdstrikegeo/geo/ebird_adapter.py (structure only, no network
+      calls without EBIRD_ST_ACCESS_KEY set) and
+      BIRD_DATA_SOURCE_COMPARISON.md for the full research writeup and
+      why this is the recommended future replacement/supplement for
+      single-station Trektellen bird-activity data.

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Eastern Shore Hazard Report — BirdStrikeGeo{% endblock %}
+{% set active_mode = "hazard" %}
+{% block heading %}5. Eastern Shore (FBBO) Bird-Hazard Risk Report{% endblock %}
+{% block subheading %}Exploratory analysis — not a calibrated strike probability.{% endblock %}
+{% block content %}
+<style>
+  .report-body h1 { display: none; } /* already shown via page heading above */
+  .report-body h2 { font-size: 1.1rem; margin-top: 1.5rem; }
+  .report-body img { max-width: 100%; border-radius: 6px; border: 1px solid var(--border); }
+  .report-body p { color: var(--text); }
+</style>
+{% if report_missing %}
+  <div class="error">No report found. Run
+    <code>python scripts/train_severity_model.py && python scripts/build_eastern_shore_risk_report.py</code>
+    first, then reload this page.</div>
+{% else %}
+  <div class="card report-body">{{ report_html | safe }}</div>
+{% endif %}
+{% endblock %}

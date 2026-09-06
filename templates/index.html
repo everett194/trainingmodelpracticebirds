@@ -18,19 +18,43 @@
 </div>
 
 <div class="card">
-  <h2 style="margin-top:0;">2. Reported-strike damage model</h2>
-  <p><strong>Estimated probability of aircraft damage, conditional on a reported
-     wildlife strike.</strong> Trained on FAA Wildlife Strike Database records (real
-     data) or synthetic sample fixtures. Never a prediction of whether a strike will occur.</p>
-  <p class="meta">Model trained: {{ "yes" if damage_model_available else "no — run scripts/train_models.py first" }}</p>
-  <a href="/damage"><button type="button">Open damage model →</button></a>
+  <h2 style="margin-top:0;">4. GA conditional-damage model (CatBoost) — ★ primary</h2>
+  <p>The current, authoritative damage model: <strong>estimated probability of aircraft damage,
+     conditional on a reported wildlife strike</strong>, for the confirmed business/private
+     fixed-wing GA population. Trained on the FAA Wildlife Strike Database with CatBoost
+     and calibrated. Pick a named scenario to see a live prediction.</p>
+  <p class="meta">Model trained: {{ "yes" if ga_damage_model_available else "no — run scripts/ga_train_models.py first" }}</p>
+  <a href="/ga-damage"><button type="button">Open GA damage model →</button></a>
 </div>
 
 <div class="card">
-  <h2 style="margin-top:0;">3. Airport wildlife activity explorer</h2>
-  <p>A relative <code>activity_index</code> for an airport and time period, built from
-     nearby Trektellen bird-migration monitoring observations. Not a strike probability.</p>
+  <h2 style="margin-top:0;">5. Bird-hazard index (Eastern Shore/FBBO) — ★ primary</h2>
+  <p>The current, authoritative secondary output: exploratory analysis joining nationwide
+     per-species strike-severity risk against a 2025 Trektellen banding station's local bird
+     activity on Maryland's Eastern Shore. Not a calibrated strike probability - see the
+     report for caveats.</p>
+  <p class="meta">Report available: {{ "yes" if hazard_report_available else "no — run scripts/build_eastern_shore_risk_report.py first" }}</p>
+  <a href="/hazard"><button type="button">Open hazard report →</button></a>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">2. Reported-strike damage model (legacy)</h2>
+  <p><strong>Estimated probability of aircraft damage, conditional on a reported
+     wildlife strike.</strong> Trained on ALL aircraft types in the FAA Wildlife Strike
+     Database (not GA-filtered), with a more permissive feature policy than mode 4.
+     Preserved as a working PyTorch architecture demonstration — see
+     <code>LEGACY_SYSTEMS.md</code> for why mode 4 is now the primary damage model.</p>
+  <p class="meta">Model trained: {{ "yes" if damage_model_available else "no — run scripts/train_models.py first" }}</p>
+  <a href="/damage"><button type="button">Open legacy damage model →</button></a>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">3. Airport wildlife activity explorer (legacy)</h2>
+  <p>A relative <code>activity_index</code> for an airport and time period, computed from a
+     transparent hand-picked formula over nearby Trektellen bird-migration monitoring
+     observations (not a trained model). Preserved for its formula-based approach — see
+     <code>LEGACY_SYSTEMS.md</code> for why mode 5 is now the primary hazard/activity output.</p>
   <p class="meta">Data available: {{ "yes" if activity_data_available else "no — run scripts/generate_sample_data.py first" }}</p>
-  <a href="/activity"><button type="button">Open activity explorer →</button></a>
+  <a href="/activity"><button type="button">Open legacy activity explorer →</button></a>
 </div>
 {% endblock %}

@@ -45,6 +45,13 @@ crs_strategy:
   # rather than forcing a single ill-fitting projection.
   fallback: geodesic
 
+# H3 hexagonal grid indexing (see geo/h3_grid.py and GEOSPATIAL_METHODS.md
+# section 7a for the full resolution justification) — added in the
+# Phase 2/3 audit consolidation, not yet wired into the main pipeline.
+h3_grid:
+  default_resolution: 5  # ~8.5 km edge, matches the 50 km buffer scale below
+  fine_resolution: 7  # ~1.2 km edge, for dense-data regions or fine-raster joins (e.g. eBird's 3km grid)
+
 trektellen_radii_km: [50, 100, 250]
 
 trektellen_lookback_windows:

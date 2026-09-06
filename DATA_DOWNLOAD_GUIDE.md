@@ -67,13 +67,30 @@ converted automatically (`birdstrikegeo/data/ingest_trektellen.py`).
 ## Airports
 
 ```text
-Expected filename: data/raw/airports.geojson
-Provider: [USER/ESRI ANALYST TO COMPLETE]
-Layer URL: [TO COMPLETE]
-License: [TO COMPLETE]
+Expected filename: data/raw/airports.geojson (or airports.csv, see below)
+Provider: OurAirports (https://ourairports.com/data/), mirrored at
+          https://github.com/davidmegginson/ourairports-data
+Layer URL: https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv
+License: Public domain (Unlicense / Open Data Commons PDDL) -- no
+         attribution required, commercial use and redistribution permitted.
+Downloaded: 2026-09-06, 86,051 airports worldwide (all types, including
+            heliports and closed airports).
 ```
 
-Optional. See `ESRI_DISCUSSION_NOTES.md` question 15 for what an Esri
+**Status as of 2026-09-06: downloaded to `data/raw/airports.csv`, NOT
+yet wired into the pipeline.** `ingest_airports.py` expects
+`AIRPORT_SCHEMA` column names (`airport_id`, `icao`, `iata`, `faa_lid`,
+`airport_name`, `latitude`, `longitude`, `elevation_ft`, `airport_type`,
+`runway_count`, `longest_runway_ft`, `state`, `country`); the raw
+OurAirports export uses different names (`ident`, `icao_code`,
+`iata_code`, `local_code`, `name`, `latitude_deg`, `longitude_deg`,
+`type`, `iso_region` (e.g. `"US-PA"`, needs the `US-` prefix stripped),
+`iso_country`) and has no `runway_count`/`longest_runway_ft` columns at
+all (those live in the separate `runways.csv`, not yet downloaded). A
+small column-mapping/filter step is needed before this can be passed to
+`load_airports()` -- left as future integration work, not done here.
+
+See `ESRI_DISCUSSION_NOTES.md` question 15 for what an Esri
 analyst might recommend here (e.g. a public FAA/Eurocontrol airport
 layer, or an ArcGIS Living Atlas layer). Without this file, FAA-reported
 lat/lon on individual strikes is still usable directly.

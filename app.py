@@ -1,16 +1,28 @@
 """
 app.py
 ------
-The main local website for BirdStrikeGeo, offering THREE distinct modes
-so it's always clear which system produced a given number:
+The main local website for BirdStrikeGeo, offering FIVE modes so it's
+always clear which system produced a given number. As of the Phase 1/2
+audit and consolidation (see DATA_AUDIT_REPORT.md, LEGACY_SYSTEMS.md),
+modes 4 and 5 are the PRIMARY, current models; modes 2 and 3 are
+preserved, working, but LEGACY — kept for their own architecture/formula
+demonstration value, the same way /synthetic has always been preserved,
+not because they're wrong, but because modes 4/5 supersede them for
+actually answering "what's the current best estimate."
 
 1. /synthetic - the original, unrelated educational neural-network demo
    preserved in synthetic_demo/ (entirely synthetic, hand-designed data).
-2. /damage - Task A: estimated probability of aircraft damage,
-   CONDITIONAL ON a reported wildlife strike (never "probability a
-   strike occurs").
-3. /activity - Task B: airport-period wildlife activity index, built
-   from nearby Trektellen monitoring observations.
+2. /damage - LEGACY: estimated probability of aircraft damage given a
+   reported strike, PyTorch NN, trained on ALL aircraft types. See
+   LEGACY_SYSTEMS.md for why mode 4 supersedes this.
+3. /activity - LEGACY: airport-period wildlife activity index, a
+   transparent formula over Trektellen observations. See
+   LEGACY_SYSTEMS.md for why mode 5 supersedes this.
+4. /ga-damage - PRIMARY: calibrated CatBoost conditional-damage model,
+   confirmed GA (business/private fixed-wing) population only, stricter
+   leakage policy than mode 2 (see ga/feature_policy.py).
+5. /hazard - PRIMARY: relative bird-hazard index report, joining
+   FAA-wide species severity risk against local Trektellen activity.
 
 None of this is operational aviation-safety software. Every page that
 reflects sample data displays a prominent "SAMPLE DATA — NOT A REAL
@@ -28,13 +40,17 @@ import importlib.util
 import sys
 from pathlib import Path
 
-from flask import Flask, render_template, request
+import markdown
+from flask import Flask, render_template, request, send_from_directory
 
 REPO_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from birdstrikegeo.data.ingest_airports import load_airports  # noqa: E402
 from birdstrikegeo.features.taxonomy import SPECIES_TAXONOMY  # noqa: E402
+from birdstrikegeo.ga.features import build_operational_core_features  # noqa: E402
+from birdstrikegeo.ga.inference import load_bundle, predict_scenario  # noqa: E402
+from birdstrikegeo.ga.presets import ScenarioValidationError, get_preset, list_presets, validate_scenario  # noqa: E402
 from birdstrikegeo.inference.calculate_activity import calculate_activity_for_airport  # noqa: E402
 from birdstrikegeo.inference.predict_damage import predict_damage  # noqa: E402
 
@@ -106,6 +122,24 @@ def _activity_data_available() -> tuple[bool, bool]:
 
 
 # ---------------------------------------------------------------------------
+# GA conditional-damage model (Task 4, CatBoost) paths/config
+# ---------------------------------------------------------------------------
+GA_MODELS_DIR = REPO_ROOT / "models" / "ga"
+GA_FEATURE_MODE = "operational_core"
+
+
+def _ga_model_available() -> bool:
+    return (GA_MODELS_DIR / f"ga_catboost_{GA_FEATURE_MODE}.cbm").exists() and \
+        (GA_MODELS_DIR / f"ga_model_bundle_{GA_FEATURE_MODE}.pkl").exists()
+
+# ---------------------------------------------------------------------------
+# Eastern Shore hazard report (Task 5) paths/config
+# ---------------------------------------------------------------------------
+HAZARD_REPORTS_DIR = REPO_ROOT / "reports" / "latest"
+HAZARD_REPORT_PATH = HAZARD_REPORTS_DIR / "eastern_shore_birdstrike_risk_analysis.md"
+
+
+# ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 @app.route("/")
@@ -116,6 +150,8 @@ def index():
         synthetic_model_available=Path(SYN_CONFIG.MODEL_PATH).exists(),
         damage_model_available=DAMAGE_CHECKPOINT_SAMPLE.exists() or DAMAGE_CHECKPOINT_REAL.exists(),
         activity_data_available=sample_activity or real_activity,
+        ga_damage_model_available=_ga_model_available(),
+        hazard_report_available=HAZARD_REPORT_PATH.exists(),
     )
 
 
@@ -268,6 +304,62 @@ def activity_predict():
 
     return render_template("activity.html", airports=airports, result=result, error=error,
                             data_missing=False, using_sample_data=using_sample, submitted=submitted)
+
+
+# --- Mode 4: GA conditional-damage model (CatBoost) ---
+@app.route("/ga-damage", methods=["GET"])
+def ga_damage_index():
+    presets = [(name, get_preset(name)["description"]) for name in list_presets()]
+    return render_template(
+        "ga_damage.html", presets=presets, submitted_preset="", preset_description=None,
+        result=None, error=None, model_missing=not _ga_model_available(),
+    )
+
+
+@app.route("/ga-damage/predict", methods=["POST"])
+def ga_damage_predict():
+    presets = [(name, get_preset(name)["description"]) for name in list_presets()]
+    submitted_preset = request.form.get("preset", "")
+
+    if not _ga_model_available():
+        return render_template("ga_damage.html", presets=presets, submitted_preset=submitted_preset,
+                                preset_description=None, result=None, error=None, model_missing=True)
+
+    try:
+        scenario = get_preset(submitted_preset)
+        preset_description = scenario.pop("description")
+        bundle = load_bundle(GA_MODELS_DIR, feature_mode=GA_FEATURE_MODE)
+        validate_scenario(scenario, bundle.seen_categories, bundle.numeric_ranges)
+        result = predict_scenario(scenario, bundle, build_operational_core_features)
+        error = None
+    except ScenarioValidationError as exc:
+        result, preset_description, error = None, None, str(exc)
+    except Exception as exc:  # surfaced to the user rather than a 500 page
+        result, preset_description, error = None, None, f"Could not compute a prediction: {exc}"
+
+    return render_template("ga_damage.html", presets=presets, submitted_preset=submitted_preset,
+                            preset_description=preset_description, result=result, error=error, model_missing=False)
+
+
+# --- Mode 5: Eastern Shore hazard report viewer ---
+@app.route("/hazard", methods=["GET"])
+def hazard_index():
+    if not HAZARD_REPORT_PATH.exists():
+        return render_template("hazard.html", report_missing=True, report_html=None)
+
+    report_text = HAZARD_REPORT_PATH.read_text()
+    # Rewrite the report's relative image reference to go through
+    # /report-assets/, since reports/latest/ isn't Flask's static folder.
+    report_text = report_text.replace(
+        "(eastern_shore_risk_scatter.png)", "(/report-assets/eastern_shore_risk_scatter.png)"
+    )
+    report_html = markdown.markdown(report_text, extensions=["tables"])
+    return render_template("hazard.html", report_missing=False, report_html=report_html)
+
+
+@app.route("/report-assets/<path:filename>")
+def report_assets(filename):
+    return send_from_directory(HAZARD_REPORTS_DIR, filename)
 
 
 if __name__ == "__main__":

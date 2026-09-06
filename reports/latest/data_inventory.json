@@ -1,0 +1,157 @@
+{
+  "generated_at": "2026-09-05",
+  "generated_by": "Phase 1 repository/data audit (manual, via scripts/inspect_raw_schemas.py cross-checked with ad hoc pandas profiling)",
+  "notes": [
+    "Row/column counts for the full FAA export and its derived files were verified directly against data/interim/ga/faa_raw_cache.parquet and results/damage/data_quality_real.md, both generated from the same 353,969-row source file (sha256 a2b21612b0abde685b9b6772cbd6d659d1fd93299c0d6d28cb96fa485a1ce99f).",
+    "The repository directory lives under iCloud Drive (~/Documents). data/raw/faa_wildlife_strikes.xlsx and data/interim/ga/faa_raw_cache.parquet were found evicted to iCloud placeholders (0 bytes on local disk via `du`, despite `ls` reporting full logical size) during this audit; `brctl download` was used to force local materialization before profiling. This is a real, recurring operational risk -- see audit report 'Infrastructure risk' section."
+  ],
+  "files": [
+    {
+      "path": "data/raw/faa_wildlife_strikes.xlsx",
+      "category": "raw, gitignored, user-supplied",
+      "format": "xlsx",
+      "rows": 353969,
+      "columns": 102,
+      "unit_of_observation": "one reported wildlife-strike incident (all U.S. civil aircraft types)",
+      "date_range": ["2007", "2026 (partial year, reporting lag)"],
+      "geographic_coverage": "US-wide (all FAA regions); 48031/353969 rows (13.6%) missing latitude, 48025 missing longitude",
+      "missingness_source": "results/damage/data_quality_real.md (already computed, cited rather than recomputed)",
+      "known_issues": [
+        "aircraft_make and aircraft_model columns are 100% missing (not present in this export vintage) -- see column_aliases.py resolution list.",
+        "parts_struck and parts_damaged are 100% missing.",
+        "Was found evicted to an iCloud placeholder (0 bytes local) at audit time; see notes."
+      ]
+    },
+    {
+      "path": "data/raw/read_me.xls",
+      "category": "raw, gitignored, user-supplied",
+      "format": "xls (legacy binary, not a data table)",
+      "rows": null,
+      "columns": null,
+      "unit_of_observation": "N/A -- this is FAA's own documentation workbook accompanying the export, not strike records.",
+      "known_issues": ["Should not be profiled/ingested as a data table; confirm it is excluded from any automated schema-inspection loop."]
+    },
+    {
+      "path": "data/raw/trektellen_2025_year_totals.csv",
+      "category": "raw, gitignored, user-supplied",
+      "format": "csv, wide (species x month)",
+      "rows": 129,
+      "columns": 24,
+      "row_breakdown": {"species_rows": 127, "totals_row": 1, "observation_hours_row": 1},
+      "unit_of_observation": "one species' monthly count totals at a single banding station (FBBO / Trektellen site 3460) for the 2025 season (Mar-Nov)",
+      "date_range": ["2025-03", "2025-11"],
+      "geographic_coverage": "single point location (FBBO, Eastern Shore of Maryland) -- not a spatial dataset",
+      "missingness": "0% on species/month columns; ~1.6% on maximum_date/maximum_url/first_date/last_date (rows with a zero-count season)",
+      "known_issues": [
+        "NO provenance record (data/raw/trektellen_provenance.json) exists for this file, despite DATA_DOWNLOAD_GUIDE.md and TREKTELLEN_PROVENANCE_FIELDS (schemas/trektellen.py) documenting this as a hard requirement before real Trektellen data is used. This is a compliance gap against the project's own stated policy -- flagged, not fixed, in Phase 1.",
+        "Schema does NOT match TREKTELLEN_SITE_SCHEMA / TREKTELLEN_COUNT_SCHEMA in schemas/trektellen.py -- it is parsed by a separate, bespoke loader (birdstrikegeo/hazard/trektellen_season.py), not birdstrikegeo/data/ingest_trektellen.py. Two independent Trektellen ingestion code paths exist.",
+        "'observation_hours' row stores values as free-text HH:MM strings (e.g. '126:55'), not numeric durations -- parsing responsibility lives in trektellen_season.py.",
+        "Single station, single season -- MODEL_CARD-level claims from this file describe FBBO 2025 only, not a general Eastern Shore or nationwide pattern."
+      ]
+    },
+    {
+      "path": "data/interim/ga/faa_raw_cache.parquet",
+      "category": "interim, gitignored, regeneratable",
+      "format": "parquet",
+      "rows": 353969,
+      "columns": 102,
+      "unit_of_observation": "one reported wildlife-strike incident (all aircraft types) -- raw FAA columns, uncached copy of faa_wildlife_strikes.xlsx for fast re-reads",
+      "known_issues": ["Also found evicted to an iCloud placeholder at audit time."]
+    },
+    {
+      "path": "data/processed/ga/ga_filtered.parquet",
+      "category": "processed, gitignored, regeneratable",
+      "format": "parquet",
+      "rows": 29522,
+      "columns": 105,
+      "unit_of_observation": "one reported wildlife-strike incident, filtered to the confirmed business/private fixed-wing GA population",
+      "derived_from": "data/interim/ga/faa_raw_cache.parquet, filtered by scripts/ga_prepare_data.py",
+      "used_by": ["src/birdstrikegeo/ga/* (CatBoost GA conditional-damage model)", "src/birdstrikegeo/hazard/* (severity-risk model, via configs/eastern_shore_risk.yaml)"],
+      "target_columns_present": ["damage_binary", "damage_target_status", "damage_level_inconsistent"]
+    },
+    {
+      "path": "data/processed/real/damage_{train,validation,test}.csv",
+      "category": "processed, gitignored, regeneratable",
+      "format": "csv",
+      "rows": {"train": 247778, "validation": 53095, "test": 53096},
+      "columns": 39,
+      "unit_of_observation": "one reported wildlife-strike incident, ALL aircraft types (not GA-filtered) -- chronological split (train_end 2021-05-20, validation_end 2024-05-06)",
+      "target_column": "damage (binary)",
+      "target_prevalence": "22200 positive / 353969 total = ~6.27% (explicit_negative=331769, explicit_positive=22200, 0 rows excluded for ambiguous target)",
+      "feature_policy": "birdstrikegeo.features.leakage (canonical/alias-resolved column names) -- notably PERMITS species_common_name, species_scientific_name, wildlife_size, number_seen, number_struck as model inputs, unlike the stricter GA feature_policy.",
+      "used_by": ["src/birdstrikegeo/training/train_damage.py (old PyTorch DamageNet) -- NOTE: no models/damage/*.pt checkpoint currently exists locally, so this pipeline's real-mode model is prepared but not currently trained/deployed in this environment."],
+      "known_issues": ["This is a DIFFERENT population (all aircraft) and a DIFFERENT feature-leakage policy than data/processed/ga/ga_filtered.parquet, even though both ultimately feed a 'P(damage | reported strike)' model. See audit report 'Duplicated/conflicting pipelines'."]
+    },
+    {
+      "path": "data/processed/real/damage_excluded_unknown_target.csv",
+      "category": "processed, gitignored, regeneratable",
+      "rows": 0,
+      "note": "Zero rows excluded for ambiguous damage_flag/damage_level across all 353,969 real rows. Plausible given damage_flag has 0% missingness in this export, but flagged as a 'verify' item -- worth spot-checking a few raw rows against build_damage_features.py's ambiguity logic."
+    },
+    {
+      "path": "data/processed/layers/*.{csv,geojson,gpkg,parquet}",
+      "category": "processed, gitignored, regeneratable",
+      "rows": 25,
+      "unit_of_observation": "one airport (currently the 25 SAMPLE airports only -- no real airports.geojson has been supplied per DATA_DOWNLOAD_GUIDE.md, so every geospatial layer/buffer/CRS/ArcGIS-export code path in this repository is validated against synthetic data only, never real airport geometry)",
+      "layers": ["airports", "trektellen_sites", "airport_buffers_50/100/250km", "airport_trektellen_links", "airport_period_activity"]
+    },
+    {
+      "path": "data/sample/*.{csv,geojson}",
+      "category": "sample, committed to git, 100% synthetic (seed 42)",
+      "files": {
+        "airports_sample.csv/.geojson": {"rows": 25, "columns": 13, "coverage": "15 CONUS-like + 10 Europe-like synthetic points"},
+        "faa_strikes_sample.csv": {"rows": 500, "columns": 36, "note": "hand-designed synthetic relationships, e.g. bird size vs damage likelihood -- not derived from real strike data"},
+        "trektellen_sites_sample.csv": {"rows": 40, "columns": 11},
+        "trektellen_counts_sample.csv": {"rows": 4852, "columns": 16},
+        "weather_sample.csv": {"rows": 8400, "columns": 18, "note": "14 days hourly synthetic weather x sample airports"}
+      }
+    },
+    {
+      "path": "models/ga/ga_catboost_operational_core.cbm + ga_model_bundle_operational_core.pkl",
+      "category": "trained model artifact, gitignored, regeneratable",
+      "trained_on": "data/processed/ga/ga_filtered.parquet (29,522 rows, GA population)",
+      "algorithm": "CatBoost classifier, Platt/isotonic-calibrated",
+      "status": "PRESENT and functional -- this is the model served by app.py's /ga-damage route."
+    },
+    {
+      "path": "models/hazard/severity_catboost.cbm",
+      "category": "trained model artifact, gitignored, regeneratable",
+      "trained_on": "data/processed/ga/ga_filtered.parquet, ordinal damage-severity target (0-3)",
+      "status": "PRESENT -- serves reports/latest/eastern_shore_birdstrike_risk_analysis.md and national_species_risk.csv"
+    },
+    {
+      "path": "models/damage/*.pt",
+      "category": "trained model artifact (old PyTorch DamageNet)",
+      "status": "NOT PRESENT locally for real-mode (--mode real). data/processed/real/damage_{train,validation,test}.csv exist, implying prepare_data.py --mode real was run, but train_models.py --task damage --mode real either was not run or its checkpoint was not retained. app.py's /damage route currently has no real model to serve; only the sample-data checkpoint status is unverified without a fresh run."
+    },
+    {
+      "path": "reports/latest/*",
+      "category": "committed report artifacts",
+      "files": [
+        "model_comparison.csv (4 rows: dummy/logistic_regression/histogram_gradient_boosting/neural_net -- SAMPLE-DATA comparison for the old DamageNet, per MODEL_CARD.md)",
+        "national_species_risk.csv (484 species, FAA-wide, from the hazard severity model)",
+        "eastern_shore_birdstrike_risk_analysis.md + eastern_shore_risk_scatter.png (FBBO 2025 local risk read)",
+        "model_receipt.md, metrics.json, feature_list.json, ga_population_summary.json (GA CatBoost model receipt)",
+        "severity_model_metrics.json (val_rmse=0.349, val_r2=0.319, test_rmse=0.360)",
+        "calibration_curve.png, confusion_matrix.png, feature_importance.png"
+      ]
+    },
+    {
+      "path": "results/damage/data_quality_{real,sample}.{json,md}",
+      "category": "gitignored, regeneratable",
+      "note": "Already contains a comprehensive data-quality report for the full real FAA export -- see audit report for cited figures rather than duplicating the full breakdown here."
+    }
+  ],
+  "test_suite": {
+    "test_files": 21,
+    "test_functions_non_parametrized": 119,
+    "last_verified_pass_count": "199 passed, 6 skipped (204 passed, 1 skipped including -m slow) -- 2026-09-02, PYTHONPATH=src python -m pytest -q"
+  },
+  "existing_scripts": {
+    "task_a_old_pytorch_pipeline": ["scripts/prepare_data.py", "scripts/train_models.py", "scripts/evaluate_models.py"],
+    "task_b_old_activity_pipeline": ["scripts/build_geospatial_features.py", "scripts/export_arcgis_layers.py"],
+    "ga_catboost_pipeline_new": ["scripts/ga_prepare_data.py", "scripts/ga_train_models.py", "scripts/predict_damage.py"],
+    "hazard_pipeline_new": ["scripts/train_severity_model.py", "scripts/build_eastern_shore_risk_report.py"],
+    "shared_utility": ["scripts/generate_sample_data.py", "scripts/inspect_raw_schemas.py", "scripts/validate_data.py"]
+  }
+}

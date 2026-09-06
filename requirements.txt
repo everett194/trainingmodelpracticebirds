@@ -18,6 +18,7 @@ catboost
 # Web interface
 flask
 requests
+markdown
 
 # Configuration and environment
 pyyaml
@@ -32,6 +33,7 @@ geopandas
 shapely
 pyproj
 folium
+h3
 
 # Sunrise/sunset (dawn/dusk features) - computed from date + coordinates
 # rather than fixed clock hours.

@@ -25,10 +25,15 @@ mistake. BirdStrikeGeo keeps them explicitly separate.
 
 ## What this project actually predicts
 
-| Task | Question answered | Trained from |
-|---|---|---|
-| **A — Damage model** | *Given a reported wildlife strike*, estimated probability it caused aircraft damage. | FAA Wildlife Strike Database (real data) or a synthetic sample fixture. |
-| **B — Activity index** | A relative `activity_index` (0–1) for an airport during a time window, from nearby bird-migration monitoring. | A transparent formula over Trektellen observations — **not a trained classifier** (see below). |
+**As of the Phase 1/2 audit and consolidation** (see
+`DATA_AUDIT_REPORT.md`, `LEGACY_SYSTEMS.md`), each task now has a
+PRIMARY (current, authoritative) implementation and a preserved LEGACY
+one — the same treatment `synthetic_demo/` has always gotten.
+
+| Task | Question answered | Primary implementation | Legacy implementation |
+|---|---|---|---|
+| **A — Damage model** | *Given a reported wildlife strike*, estimated probability it caused aircraft damage. | `/ga-damage` — calibrated CatBoost, confirmed GA population only | `/damage` — PyTorch NN, all aircraft types (see `LEGACY_SYSTEMS.md`) |
+| **B — Bird-hazard / activity index** | A relative measure of bird presence/hazard for an airport during a time window, from nearby bird-migration monitoring. | `/hazard` — FAA-derived species-severity risk joined to local Trektellen activity | `/activity` — a transparent `activity_index` formula (see `LEGACY_SYSTEMS.md`) |
 
 **Neither task predicts the probability that a wildlife strike will
 occur.** That would require knowing how many flights *didn't* have a
@@ -117,6 +122,18 @@ results/damage/*_quality*.json  results/activity/*_quality*.json  results/damage
 
 ## Quick start (sample data — no downloads required)
 
+> **If this repo lives under iCloud Drive (e.g. `~/Documents`)**, exclude
+> `.venv` from sync BEFORE installing anything, or every Python
+> invocation can silently degrade to 100-250x slower (confirmed: a bare
+> `import pandas` took 255 seconds with `.venv` iCloud-synced vs. under
+> 1 second with it excluded) and large files under `data/` can get
+> evicted to 0-byte placeholders that hang on read until re-downloaded
+> (`brctl download <path>`):
+> ```bash
+> mv .venv .venv.nosync && ln -s .venv.nosync .venv
+> ```
+> Do this every time `.venv` is recreated from scratch in this location.
+
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
@@ -189,11 +206,15 @@ tests/                    90 tests, no real data or network access required
 
 ## Documentation map
 
+- **`DATA_AUDIT_REPORT.md`** — Phase 1 repository/data audit: what exists, what's duplicated, what's unverified.
+- **`LEGACY_SYSTEMS.md`** — which pipeline is primary vs. legacy for each task, and why.
+- **`BIRD_DATA_SOURCE_COMPARISON.md`** — eBird/BirdCast/USGS/Movebank/Motus/Audubon/Esri source comparison for future bird-data integration.
 - **`DATA_CARD.md`** — every dataset, real and synthetic, and its known limitations.
 - **`MODEL_CARD.md`** — both models' architecture, training, sample-data results, and limitations.
-- **`GEOSPATIAL_METHODS.md`** — CRS strategy, distance-decay weighting, layer exports, ArcGIS interoperability.
+- **`GEOSPATIAL_METHODS.md`** — CRS strategy, distance-decay weighting, layer exports, ArcGIS interoperability, H3 grid indexing.
 - **`ESRI_DISCUSSION_NOTES.md`** — a project summary and 20 open GIS design questions for a real analyst.
 - **`DATA_DOWNLOAD_GUIDE.md`** — exactly what to download and where to put it.
+- **`reports/latest/data_inventory.json`** — machine-readable data inventory (row counts, columns, missingness per file).
 
 ## Scientific limitations
 

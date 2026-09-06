@@ -129,6 +129,48 @@ when a real spatial layer is actually supplied by the caller — **never**
 fabricated for a real airport. `habitat_data_available` distinguishes
 "no habitat nearby" from "we don't have the data."
 
+## 7a. H3 grid indexing (`geo/h3_grid.py`, added in the Phase 2/3 audit consolidation)
+
+A hexagonal spatial-indexing layer (Uber's H3) so bird abundance,
+strikes, airports, habitat, and weather can all be aggregated onto the
+SAME set of cells, rather than each pipeline picking its own ad hoc
+aggregation. This does not replace the CRS/buffer strategy in section 1
+above — H3 cells are a discrete aggregation key for JOINING
+heterogeneous sources, not a substitute for exact distance math (see
+`distance_km_between_h3_cells`, which still goes through this module's
+`geodesic_distance_km`, not H3's own hop-count `grid_distance`).
+
+**Resolution choice:**
+
+| Resolution | Edge length | Average cell area | When used |
+|---|---|---|---|
+| 5 | ~8.5 km | ~252 km² | Default — matches the existing 50 km airport-buffer scale reasonably (a 50 km buffer ≈ a 5-7 cell radius) |
+| 7 | ~1.2 km | ~5.2 km² | Finer option for dense-data regions, or joining a fine-grained raster source (e.g. eBird's 3 km grid) without conflating multiple source pixels into one cell |
+
+Both are precomputed and stored per row (`h3_cell_r5`/`h3_cell_r7` in
+`schemas.hazard_observation.GEOGRAPHIC_SCHEMA`), never computed on the
+fly at query time, so a downstream join never has to guess which
+resolution a stored cell ID belongs to. A row with missing/invalid
+coordinates gets a null cell, never a guessed one — the same "don't
+fabricate what you don't have" rule as everywhere else in this project.
+
+**Raster vs. vector treatment:** point sources (strikes, airports,
+Trektellen sites) are assigned to their containing cell directly. A
+raster source (e.g. eBird's GeoTIFF, once integrated —
+`geo/ebird_adapter.py`) would be resampled to per-cell mean/max values
+at the SAME resolution before joining, rather than sampled at each
+point's exact pixel — this is future work, not yet implemented, since no
+raster source is integrated yet.
+
+**Boundary handling:** a point near a cell edge is assigned to whichever
+cell contains its exact coordinate — no special edge-smoothing is
+applied. This is a known simplification (a bird just across a cell
+boundary from an airport is treated as "not in this cell" even though
+it may be closer than a bird well inside the cell) — acceptable at
+resolution 5's ~8.5 km scale for an exploratory index, but worth
+revisiting if resolution 7 or finer is used for a more precision-
+sensitive future analysis.
+
 ## 7. ArcGIS interoperability, without requiring ArcGIS
 
 `birdstrikegeo/geo/arcgis_adapter.py` is entirely optional:

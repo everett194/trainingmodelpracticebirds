@@ -75,8 +75,10 @@
     <nav class="modes">
       <a href="/" class="{{ 'active' if active_mode == 'home' else '' }}">Overview</a>
       <a href="/synthetic" class="{{ 'active' if active_mode == 'synthetic' else '' }}">1. Synthetic demo</a>
-      <a href="/damage" class="{{ 'active' if active_mode == 'damage' else '' }}">2. Damage model</a>
-      <a href="/activity" class="{{ 'active' if active_mode == 'activity' else '' }}">3. Activity explorer</a>
+      <a href="/damage" class="{{ 'active' if active_mode == 'damage' else '' }}">2. Damage model (legacy)</a>
+      <a href="/activity" class="{{ 'active' if active_mode == 'activity' else '' }}">3. Activity explorer (legacy)</a>
+      <a href="/ga-damage" class="{{ 'active' if active_mode == 'ga_damage' else '' }}">4. GA damage model ★ primary</a>
+      <a href="/hazard" class="{{ 'active' if active_mode == 'hazard' else '' }}">5. Bird-hazard index ★ primary</a>
     </nav>
 
     {% block sample_banner %}{% endblock %}

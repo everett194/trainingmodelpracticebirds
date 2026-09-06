@@ -74,9 +74,13 @@ and how this project handles those limitations in code.
 - **Used for:** airport-centered geospatial features (Trektellen
   proximity, buffers). Optional — FAA-reported lat/lon on individual
   strikes can be used directly without this dataset.
-- **Real download:** see `DATA_DOWNLOAD_GUIDE.md` (provider/license
-  fields left for the user or an Esri analyst to fill in — see
-  `ESRI_DISCUSSION_NOTES.md` question 15).
+- **Real download:** `data/raw/airports.csv`, sourced from OurAirports
+  (public domain, see `DATA_DOWNLOAD_GUIDE.md`) — downloaded 2026-09-06,
+  86,051 airports worldwide. **Not yet wired into the pipeline** — column
+  names don't match `AIRPORT_SCHEMA` yet; see `DATA_DOWNLOAD_GUIDE.md`
+  for the exact mapping needed. See also `ESRI_DISCUSSION_NOTES.md`
+  question 15 for whether a different/complementary source (e.g. an Esri
+  Living Atlas airport layer) would be preferable for a real publish.
 - **Sample fixture:** `data/sample/airports_sample.geojson`/`.csv` — 25
   synthetic airport points (15 in a CONUS-like bounding box, 10 in a
   Europe-like bounding box), clearly named `(SYNTHETIC)`.

@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Damage Model — BirdStrikeGeo{% endblock %}
 {% set active_mode = "damage" %}
-{% block heading %}2. Reported-Strike Damage Model{% endblock %}
-{% block subheading %}Task A — trained on FAA Wildlife Strike Database records (or synthetic sample fixtures).{% endblock %}
+{% block heading %}2. Reported-Strike Damage Model (Legacy){% endblock %}
+{% block subheading %}LEGACY — superseded by mode 4 (GA CatBoost). Trained on ALL aircraft types (or synthetic sample fixtures). See LEGACY_SYSTEMS.md.{% endblock %}
 {% block sample_banner %}
 {% if using_sample_model %}<div class="sample-banner">SAMPLE DATA — NOT A REAL RESULT</div>{% endif %}
 {% endblock %}
