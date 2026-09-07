@@ -3,16 +3,22 @@
 # Exploratory bird-strike risk analysis: trains a CatBoost regressor on
 # the FAA-wide GA damage-severity target (see birdstrikegeo.hazard), then
 # extrapolates a species-level risk read for one Eastern Shore of
-# Maryland banding station using its 2025 Trektellen export. NOT the
-# calibrated GA conditional-damage milestone (configs/ga_damage.yaml) -
-# this is a lighter, explanatory risk-ranking analysis, not a tuned
-# production model.
+# Maryland banding station. NOT the calibrated GA conditional-damage
+# milestone (configs/ga_damage.yaml) - this is a lighter, explanatory
+# risk-ranking analysis, not a tuned production model.
+#
+# Local-activity source: scripts/build_eastern_shore_risk_report.py
+# prefers multi-year ANNUAL data (any data/reference/trektellen*annual*.pdf,
+# via birdstrikegeo.data.ingest_trektellen_annual_pdf) when present, and
+# falls back to the single-season `trektellen_csv` below otherwise. Drop
+# a new/updated annual PDF into data/reference/ to have it picked up
+# automatically - no config change needed.
 
 random_seed: 42
 
 paths:
   ga_filtered_parquet: data/processed/ga/ga_filtered.parquet
-  trektellen_csv: data/raw/trektellen_2025_year_totals.csv
+  trektellen_csv: data/raw/trektellen_2025_year_totals.csv  # fallback only - see local-activity source note above
   models_dir: models/hazard
   reports_dir: reports/latest
 

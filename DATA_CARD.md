@@ -62,6 +62,23 @@ and how this project handles those limitations in code.
   Real data requires a user-authorized export and a completed
   provenance record (`TREKTELLEN_PROVENANCE_FIELDS` in
   `birdstrikegeo/schemas/trektellen.py`) — see `DATA_DOWNLOAD_GUIDE.md`.
+- **Two real Trektellen sources exist for the hazard report (`hazard/`,
+  not Task B above):** a single-season monthly year-totals export
+  (`data/raw/trektellen_2025_year_totals.csv`, gitignored, user-supplied)
+  and a multi-year annual banding-totals PDF
+  (`data/reference/trektellen_fbbo_annual_banding_totals_2016-2025.pdf`,
+  **deliberately committed** — see `data/reference/README.md` for why
+  this one directory is an exception to "real data is never committed").
+  The annual PDF is parsed by
+  `birdstrikegeo/data/ingest_trektellen_annual_pdf.py` and preferred
+  automatically by `scripts/build_eastern_shore_risk_report.py` when
+  present (2022-2025 monitored, 2016-2021 present in the file but
+  explicitly unmonitored — see that module's docstring for why those
+  years are `monitored=False`, not zero-activity). Drop a new/updated
+  annual PDF into `data/reference/` (matching `trektellen*annual*.pdf`)
+  and re-run `scripts/build_trektellen_annual_dataset.py` (or just the
+  risk-report script, which calls it automatically when the PDF is
+  newer than the cached dataset) to pick it up.
 - **Sample fixture:** `data/sample/trektellen_sites_sample.csv` (40
   synthetic sites) and `trektellen_counts_sample.csv` (~5,000 synthetic
   count rows), plus `trektellen_provenance_sample.json`, explicitly

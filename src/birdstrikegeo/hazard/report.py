@@ -19,13 +19,22 @@ _TOP_N_TABLE = 15
 _TOP_N_LABELS = 12
 
 
-def plot_local_risk_scatter(merged_df, output_path: str | Path, top_n_labels: int = _TOP_N_LABELS) -> None:
+def plot_local_risk_scatter(
+    merged_df, output_path: str | Path, top_n_labels: int = _TOP_N_LABELS,
+    activity_label: str = "FBBO 2025",
+) -> None:
     """
     x = national risk_score, y = local activity (effort-normalized
     Trektellen abundance). Species in the top-right are both nationally
     high-severity/frequency AND locally common - the biggest local
     concern. Unmatched-to-FAA species (no risk_score) are excluded from
     the plot itself, since there is nothing to place on the x-axis.
+
+    activity_label: short description of the local-activity data's
+    basis (e.g. "FBBO 2025" for the single-season monthly source, or
+    "FBBO 2016-2025" for the multi-year annual source) - shown on the
+    y-axis and title so a reader never has to guess which basis
+    produced the plot.
     """
     matched = merged_df[merged_df["matched_faa_species"]].copy()
 
@@ -40,8 +49,8 @@ def plot_local_risk_scatter(merged_df, output_path: str | Path, top_n_labels: in
         ax.annotate(row["species"], (row["risk_score"], row["local_activity"]), fontsize=8, alpha=0.85)
 
     ax.set_xlabel("National risk score (mean predicted severity x log1p(strike count))")
-    ax.set_ylabel("Local activity (effort-normalized count, FBBO 2025)")
-    ax.set_title("Eastern Shore (FBBO) species: national strike risk vs. local abundance")
+    ax.set_ylabel(f"Local activity (effort-normalized count, {activity_label})")
+    ax.set_title(f"Eastern Shore (FBBO) species: national strike risk vs. local abundance ({activity_label})")
     fig.tight_layout()
 
     output_path = Path(output_path)
@@ -84,16 +93,17 @@ light condition, warning status, height, speed, season). Validation
 RMSE: {metrics['val_rmse']:.2f}, R-squared: {metrics['val_r2']:.2f}.
 
 Per-species national risk scores (mean predicted severity x
-log1p(strike count)) were then joined against effort-normalized 2025
+log1p(strike count)) were then joined against effort-normalized local
 activity from a single Eastern Shore of Maryland banding station
-(Trektellen/FBBO). This is exploratory analysis, not a calibrated
-probability: one station-season of local data, species-name matching is
-approximate for composite/subspecies-tagged Trektellen entries, and a
-species' local abundance is not the same as its exposure risk to
-aircraft. {context['n_unmatched_local_species']} locally observed
-species had no FAA strike-record match and are excluded from the risk
-scatterplot below (but are noted separately). More station-years are
-expected to refine this analysis.
+(Trektellen/FBBO): {context.get('local_activity_basis_description',
+'2025 season only')}. This is exploratory analysis, not a calibrated
+probability: local data comes from a single station, species-name
+matching is approximate for composite/subspecies-tagged Trektellen
+entries, and a species' local abundance is not the same as its exposure
+risk to aircraft. {context['n_unmatched_local_species']} locally
+observed species had no FAA strike-record match and are excluded from
+the risk scatterplot below (but are noted separately). {context.get('additional_station_years_note',
+'More station-years are expected to refine this analysis.')}
 
 ## Nationwide findings: highest species risk (FAA-wide)
 
@@ -108,10 +118,11 @@ expected to refine this analysis.
 ## Concluding risk statement
 
 The species combining the highest national strike-severity risk with
-the highest local 2025 activity at FBBO represent the greatest plausible
-bird-strike concern for GA aircraft operating near this Eastern Shore
-station - see the top-right of the scatterplot and the local risk table
-above for the specific species driving that read this season.
+the highest local activity at FBBO ({context.get('local_activity_basis_description',
+'2025 season only')}) represent the greatest plausible bird-strike
+concern for GA aircraft operating near this Eastern Shore station - see
+the top-right of the scatterplot and the local risk table above for the
+specific species driving that read.
 """
 
     output_path = Path(output_path)
