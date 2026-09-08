@@ -1,0 +1,41 @@
+Foreman's Branch Bird Observatory (MD) — Banding Year Totals 2017-2026,,,,,,
+"Source: trektellen.org site 3460 — one sheet per dropdown period preset. Site id 3460, years 2017-2026 shown per period (only 2022-2026 have data; 2017-2021 columns are 0 because banding at this station began later within the displayed 10-yr window).",,,,,,
+,,,,,,
+Period code,Period label,Months included,Species recorded,Total (combined),Total (newly ringed),Total (retraps)
+1,January,1,0,0,0,0
+2,February,2,0,0,0,0
+3,March,3,55,8269,3086,5183
+4,April,4,88,7926,4451,3475
+5,May,5,110,9015,6245,2770
+6,June,6,0,0,0,0
+7,July,7,0,0,0,0
+8,August,8,98,8529,5876,2653
+9,September,9,117,11332,8037,3295
+10,October,10,104,24182,19818,4364
+11,November,11,71,12863,8290,4573
+12,December,12,0,0,0,0
+0,All months,"1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12",152,82116,55803,26313
+-1,Spring (Mar-May),"3, 4, 5",127,25210,13782,11428
+-2,Autumn (Aug-Nov),"8, 9, 10, 11",146,56906,42021,14885
+-3,Jan-Feb-Mar,"1, 2, 3",55,8269,3086,5183
+-4,Feb-Mar-Apr,"2, 3, 4",91,16195,7537,8658
+-5,Mar-Apr-May,"3, 4, 5",127,25210,13782,11428
+-6,Apr-May-Jun,"4, 5, 6",125,16941,10696,6245
+-7,May-Jun-Jul,"5, 6, 7",110,9015,6245,2770
+-8,Jun-Jul-Aug,"6, 7, 8",98,8529,5876,2653
+-9,Jul-Aug-Sep,"7, 8, 9",127,19861,13913,5948
+-10,Aug-Sep-Oct,"8, 9, 10",140,44043,33731,10312
+-11,Sep-Oct-Nov,"9, 10, 11",140,48377,36145,12232
+-12,Oct-Nov-Dec,"10, 11, 12",112,37045,28108,8937
+-13,Jan-Feb,"1, 2",0,0,0,0
+-14,Feb-Mar,"2, 3",55,8269,3086,5183
+-15,Mar-Apr,"3, 4",91,16195,7537,8658
+-16,Apr-May,"4, 5",125,16941,10696,6245
+-17,May-Jun,"5, 6",110,9015,6245,2770
+-18,Jun-Jul,"6, 7",0,0,0,0
+-19,Jul-Aug,"7, 8",98,8529,5876,2653
+-20,Aug-Sep,"8, 9",127,19861,13913,5948
+-21,Sep-Oct,"9, 10",133,35514,27855,7659
+-22,Oct-Nov,"10, 11",112,37045,28108,8937
+-23,Nov-Dec,"11, 12",71,12863,8290,4573
+-24,Dec-Jan,"12, 1",0,0,0,0
