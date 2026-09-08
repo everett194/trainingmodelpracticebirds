@@ -36,6 +36,10 @@ data/interim/*
 data/processed/*
 !data/processed/.gitkeep
 
+# Consolidated SQLite database (scripts/build_consolidated_database.py) -
+# embeds real FAA/Trektellen data, fully regeneratable, never committed.
+data/birdstrikegeo.db
+
 # Trained models, evaluation outputs, and exported geospatial layers are
 # all reproducible from the sample or real pipeline.
 models/*

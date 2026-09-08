@@ -206,6 +206,7 @@ tests/                    90 tests, no real data or network access required
 
 ## Documentation map
 
+- **`DATABASE.md`** — the consolidated SQLite database (`data/birdstrikegeo.db`): schema, example queries, how to rebuild it. Start here for the fastest way to explore this project's data.
 - **`DATA_AUDIT_REPORT.md`** — Phase 1 repository/data audit: what exists, what's duplicated, what's unverified.
 - **`LEGACY_SYSTEMS.md`** — which pipeline is primary vs. legacy for each task, and why.
 - **`BIRD_DATA_SOURCE_COMPARISON.md`** — eBird/BirdCast/USGS/Movebank/Motus/Audubon/Esri source comparison for future bird-data integration.
