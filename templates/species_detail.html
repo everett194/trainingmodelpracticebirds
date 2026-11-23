@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}{{ taxon_label }} — BirdStrikeNet{% endblock %}
+{% block heading %}{{ taxon_label }}{% endblock %}
+{% block subheading %}{{ filters.airport or "Region (all Eastern Shore MD airports)" }}, {{ filters.year_range[0] }}-{{ filters.year_range[1] }}{% endblock %}
+{% block content %}
+<style>
+  .drilldown-chart { display: flex; gap: 6px; align-items: flex-end; height: 110px; margin: 0.75rem 0; }
+  .drilldown-chart .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+  .drilldown-chart .report-bar { width: 60%; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; }
+  .drilldown-chart .fbbo-dot { width: 8px; height: 8px; border-radius: 50%; margin-bottom: 2px; }
+  .drilldown-chart .fbbo-dot.monitored { background: var(--lower-text); }
+  .drilldown-chart .fbbo-dot.not_monitored { background: transparent; border: 1px dashed var(--muted); }
+  .drilldown-chart .fbbo-dot.not_sampled_by_method { background: var(--border); }
+  .back-link { font-size: 0.85rem; }
+</style>
+
+<p class="back-link"><a href="{{ url_for('dashboard_index', **query_args) }}">&larr; Back to dashboard</a></p>
+
+<div class="card">
+  <h2 style="margin-top:0;">12-month pattern</h2>
+  <div class="drilldown-chart">
+    {% for m in chart %}
+      <div class="bar-wrap">
+        <div class="fbbo-dot {{ m.fbbo_status }}" title="FBBO: {{ m.fbbo_status }}{{ ' (' ~ m.fbbo_count|string ~ ')' if m.fbbo_count is not none else '' }}"></div>
+        <div class="report-bar" style="height: {{ [m.n_reports * 15, 100]|min }}%;" title="{{ m.n_reports }} reports"></div>
+        <div class="bar-label" style="font-size:0.65rem;color:var(--muted);">{{ m.label }}</div>
+      </div>
+    {% endfor %}
+  </div>
+  <p class="meta">Bars = local reports (LOCAL/REGIONAL STRIKES). Dots above = FBBO monitoring status
+    (solid green = monitored, hollow = not monitored, gray = not sampled by mist-net banding).
+    See <a href="/methods">Methods</a> for why those are never shown as the same kind of number.</p>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">Damage breakdown</h2>
+  <p>{{ n_damaging }} damaging / {{ n_known }} known-outcome reports ({{ n_reports }} total, {{ n_reports - n_known }} unknown outcome).</p>
+  {% if damage_level_counts %}
+    <table>
+      <thead><tr><th>DAMAGE_LEVEL</th><th>Count</th></tr></thead>
+      <tbody>
+        {% for level, n in damage_level_counts.items() %}
+          <tr><td>{{ level }}</td><td>{{ n }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="meta">No damage-level detail available in scope.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">Phase of flight &amp; height</h2>
+  {% if phase_counts %}
+    <table>
+      <thead><tr><th>Phase of flight</th><th>Count</th></tr></thead>
+      <tbody>{% for phase, n in phase_counts.items() %}<tr><td>{{ phase }}</td><td>{{ n }}</td></tr>{% endfor %}</tbody>
+    </table>
+  {% else %}
+    <p class="meta">Fewer than 10 reports in scope — phase-of-flight breakdown withheld as unreliable at this sample size.</p>
+  {% endif %}
+  {% if height_counts %}
+    <table>
+      <thead><tr><th>Height band</th><th>Count</th></tr></thead>
+      <tbody>{% for band, n in height_counts.items() %}<tr><td>{{ band }}</td><td>{{ n }}</td></tr>{% endfor %}</tbody>
+    </table>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">Underlying reports (n={{ report_list|length }})</h2>
+  {% if report_list %}
+    <table>
+      <thead><tr><th>Date</th><th>Airport</th><th>Phase</th><th>Damage</th></tr></thead>
+      <tbody>
+        {% for r in report_list %}
+          <tr><td>{{ r.date }}</td><td>{{ r.airport }}</td><td>{{ r.phase or "—" }}</td><td>{{ r.damage }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="meta">No reports in scope.</p>
+  {% endif %}
+  <p class="meta">No tail numbers or other identifying detail shown.</p>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">National GA context <span class="evidence-pill">NATIONAL FAA CONTEXT</span></h2>
+  {% if national_match %}
+    <p>n={{ national_match.n_reports }} reports nationally in the same years/cohort.
+      {% if national_match.insufficient_evidence %}
+        Insufficient evidence for a national damage share (n_known={{ national_match.n_known_outcome }}).
+      {% else %}
+        Damage share: {{ "%.0f%%"|format(national_match.damage_share * 100) }}
+        (95% CI {{ "%.0f%%"|format(national_match.damage_ci_low * 100) }}-{{ "%.0f%%"|format(national_match.damage_ci_high * 100) }}).
+      {% endif %}
+    </p>
+  {% else %}
+    <p class="meta">No matching national reports for this taxon in scope.</p>
+  {% endif %}
+</div>
+{% endblock %}

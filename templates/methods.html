@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Methods — BirdStrikeNet{% endblock %}
+{% block heading %}Methods{% endblock %}
+{% block subheading %}Data sources, definitions, and limitations behind every number on the dashboard.{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2 style="margin-top:0;">What this is, plainly</h2>
+  <p>BirdStrikeNet is a <strong>historical-analysis and airport-planning tool</strong> for Eastern
+     Shore of Maryland general-aviation airports. It is <strong>not a real-time or operational
+     safety tool</strong> — don't use it to make an in-the-moment go/no-go decision. It describes
+     what has been reported in the past, not what is happening right now.</p>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">Data sources</h2>
+  <ul>
+    <li><strong>FAA Wildlife Strike Database</strong> — voluntarily reported strikes to U.S. civil
+      aircraft.
+      {% if population_summary %}
+        Source file: <code>{{ population_summary.source_filename }}</code>,
+        SHA-256 <code>{{ population_summary.source_sha256[:16] }}…</code>,
+        {{ "{:,}".format(population_summary.total_source_records) }} total records,
+        {{ "{:,}".format(population_summary.principal_population_count) }} in the principal GA population.
+      {% endif %}
+    </li>
+    <li><strong>Trektellen / FBBO</strong> — a single Eastern Shore of Maryland mist-net banding
+      station's visible-migration and capture counts. See the banding-station limitation below.</li>
+    <li><strong>Airports</strong> — OurAirports public-domain airport points, filtered to Maryland's
+      nine Eastern Shore counties in <code>configs/eastern_shore_airports.yaml</code> (edit that
+      file directly to add/remove/re-tag an airport).</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">GA population cohorts</h2>
+  <table>
+    <thead><tr><th>Cohort</th><th>Definition</th><th>Regional reports (n)</th></tr></thead>
+    <tbody>
+      {% for key, label in cohort_labels.items() %}
+        <tr><td>{{ label }}</td><td><code>{{ key }}</code></td>
+          <td>{{ cohort_counts.get(key, "—") if data_available else "—" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="meta">If light-piston GA has fewer than ~30 regional reports, the dashboard defaults to
+    the broader confirmed business/private fixed-wing cohort instead — the active cohort is always
+    shown on screen, never silently assumed.</p>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">The damage-label rule</h2>
+  <p>A report counts as <strong>damaging</strong> only when FAA's own <code>INDICATED_DAMAGE</code>
+     field says so explicitly; <strong>not damaging</strong> only when it explicitly says no.
+     A report whose outcome FAA itself never resolved is excluded from the damage-share
+     denominator — it still counts in the report total, just not the percentage. In the current
+     FAA export, <code>INDICATED_DAMAGE</code> happens to never be blank for the confirmed
+     business/private fixed-wing GA population (verified against the raw 353,969-row export, not
+     assumed) — but the code path for an unknown outcome is real and tested
+     (<code>tests/test_dashboard_query.py</code>), not a hypothetical.</p>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">Small-sample thresholds</h2>
+  <ul>
+    <li><strong>Small sample</strong>: fewer than 20 known-outcome reports — the number is shown,
+      flagged, not hidden.</li>
+    <li><strong>Insufficient evidence</strong>: fewer than 10 known-outcome reports — excluded from
+      any damage ranking or "sort to top," shown as "insufficient evidence," never as 0%.</li>
+  </ul>
+  <p>Every damage share shown carries a Wilson 95% confidence interval, not just a point estimate —
+     at n&lt;20 that interval is often wide enough on its own to make the small-sample flag obvious.</p>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">The FBBO banding-station limitation</h2>
+  <p>FBBO's local activity numbers come from <strong>mist-net banding</strong> — nets that catch
+     small-to-medium birds flying at low vegetation level. They <strong>structurally cannot catch</strong>
+     geese, ducks, vultures, gulls, raptors, herons, cranes, pelicans, shorebirds, gamebirds, or deer,
+     no matter how many of those were actually present. A "0" for one of those groups is never shown
+     as if it meant "no local activity" — the dashboard labels it <strong>"not sampled by this
+     method"</strong> instead, and a genuinely unmonitored month (0 observation hours) is a third,
+     separate state, labeled <strong>"not monitored."</strong> Treat FBBO numbers as informative only
+     for small songbirds, swifts, swallows, doves, and pigeons — exactly the taxa mist nets are built
+     to catch.</p>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">Exposure data (strikes per 10,000 operations)</h2>
+  <p>Status: <strong>{{ "available for at least one airport/period" if ops_available else "not yet available" }}</strong>.
+     A rate is computed only when <code>data/raw/operations/atads_monthly.csv</code> or
+     <code>faa_5010_annual.csv</code> has a row matching the exact airport, period, and population
+     being displayed — never estimated or interpolated. See
+     <code>data/raw/operations/README.md</code> for where to get this data and exactly which fields
+     are still missing.</p>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">Evidence tiers</h2>
+  <table>
+    <thead><tr><th>Tier</th><th>Means</th></tr></thead>
+    <tbody>
+      <tr><td><span class="evidence-pill">LOCAL STRIKES</span></td><td>Reports at the one airport you selected.</td></tr>
+      <tr><td><span class="evidence-pill">REGIONAL STRIKES</span></td><td>Reports across all Eastern Shore MD airports combined — the default, and the automatic fallback when a single airport has fewer than 10 reports.</td></tr>
+      <tr><td><span class="evidence-pill">NATIONAL FAA CONTEXT</span></td><td>The same cohort/period nationwide, for comparison only — shown alongside, never substituted for local numbers.</td></tr>
+      <tr><td><span class="evidence-pill">LOCAL MONITORING</span></td><td>FBBO banding-station observations — a different kind of number from a strike report; see the banding limitation above.</td></tr>
+      <tr><td><span class="evidence-pill">MODEL OUTPUT</span></td><td>A trained model's prediction (the <a href="/methods/hazard-index">hazard index</a> or the <a href="/ga-damage">GA damage model</a>) — not a direct observation.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">Regulatory framing</h2>
+  <p>FAA Advisory Circulars 150/5200-33/-32/-38 set <strong>mandatory</strong> standards only for
+     Part 139-certificated (commercial-service) airports. Most Eastern Shore MD GA airports in this
+     roster are <strong>not</strong> Part 139 airports, so every action-panel recommendation here is
+     <strong>voluntary best practice</strong>, never a compliance requirement.</p>
+</div>
+{% endblock %}

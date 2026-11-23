@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Hazard index — BirdStrikeNet{% endblock %}
+{% set active_mode = "hazard" %}
+{% block heading %}Hazard index (relative screening measure){% endblock %}
+{% block subheading %}A CatBoost-derived national severity score joined to one local banding station's activity — exploratory, not a calibrated strike probability. See /methods for how this differs from the dashboard's observed damage shares.{% endblock %}
+{% block content %}
+<div class="disclaimer">
+  This page is a <strong>relative screening measure</strong>, not the dashboard. Its numbers are
+  <code>MODEL OUTPUT</code> (a trained regressor's predictions, aggregated), not directly observed
+  strike counts — see the evidence-tier definitions on <a href="/methods">Methods</a>. For observed
+  local strike history, use the <a href="/">Dashboard</a>.
+</div>
+<style>
+  .report-body h1 { display: none; } /* already shown via page heading above */
+  .report-body h2 { font-size: 1.1rem; margin-top: 1.5rem; }
+  .report-body img { max-width: 100%; border-radius: 6px; border: 1px solid var(--border); }
+  .report-body p { color: var(--text); }
+</style>
+{% if report_missing %}
+  <div class="error">No report found. Run
+    <code>python scripts/train_severity_model.py && python scripts/build_eastern_shore_risk_report.py</code>
+    first, then reload this page.</div>
+{% else %}
+  <div class="card report-body">{{ report_html | safe }}</div>
+{% endif %}
+{% endblock %}

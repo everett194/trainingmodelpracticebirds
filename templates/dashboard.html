@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — BirdStrikeNet{% endblock %}
+{% block heading %}BirdStrikeNet — Eastern Shore GA bird-strike history{% endblock %}
+{% block subheading %}Historical analysis and airport planning only — not a real-time or operational safety tool.{% endblock %}
+{% block content %}
+<style>
+  .filters-form { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: end; }
+  .filters-form .field { flex: 1 1 140px; margin-bottom: 0; }
+  .summary-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; }
+  .summary-strip .stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .summary-strip .stat-value { font-size: 1.4rem; font-weight: 700; }
+  .month-chart { display: flex; gap: 4px; align-items: flex-end; height: 90px; margin: 0.75rem 0; }
+  .month-chart .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+  .month-chart .bar { width: 100%; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; }
+  .month-chart .bar.low-n { background-repeat: repeat; background-image: repeating-linear-gradient(45deg, var(--accent) 0 4px, transparent 4px 8px); opacity: 0.6; }
+  .month-chart .bar-label { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+  .month-chart .bar-n { font-size: 0.65rem; color: var(--muted); }
+  table.sortable th { cursor: pointer; user-select: none; }
+  table.sortable th.active::after { content: " \25BE"; }
+  .tier-heading { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent);
+    font-weight: 700; margin: 1.25rem 0 0.4rem; }
+  .n-badge { font-size: 0.72rem; color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .evidence-pill { display: inline-block; font-size: 0.65rem; padding: 0.1rem 0.5rem; border-radius: 999px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--muted); }
+  .small-sample { opacity: 0.75; }
+  .insufficient { color: var(--muted); font-style: italic; }
+  .mammal-row { opacity: 0.85; }
+  .action-card { border-left: 4px solid var(--accent); }
+  .action-category { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .action-citations a { font-size: 0.78rem; margin-right: 0.75rem; }
+  .not-sampled { color: var(--muted); font-style: italic; }
+</style>
+
+<div class="card no-print">
+  <form class="filters-form" method="get" action="/">
+    <div class="field">
+      <label>Airport</label>
+      <select name="airport">
+        <option value="region" {{ "selected" if filters.airport is none else "" }}>Region (all Eastern Shore)</option>
+        {% for aid in airports_with_data %}
+          <option value="{{ aid }}" {{ "selected" if filters.airport == aid else "" }}>
+            {{ airport_names.get(aid, aid) }} ({{ aid }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Season / month</label>
+      <select name="period">
+        {% for value, label in period_options %}
+          <option value="{{ value }}" {{ "selected" if filters.period == value else "" }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>From year</label>
+      <input type="number" name="year_from" value="{{ filters.year_range[0] }}"
+             min="{{ year_range_bounds[0] }}" max="{{ year_range_bounds[1] }}">
+    </div>
+    <div class="field">
+      <label>To year</label>
+      <input type="number" name="year_to" value="{{ filters.year_range[1] }}"
+             min="{{ year_range_bounds[0] }}" max="{{ year_range_bounds[1] }}">
+    </div>
+    <div class="field">
+      <label>Cohort <span class="hint">(GA population)</span></label>
+      <select name="cohort">
+        {% for key, label in cohort_labels.items() %}
+          <option value="{{ key }}" {{ "selected" if filters.cohort == key else "" }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field" style="flex: 0 0 auto;">
+      <label><input type="checkbox" name="grouped" value="1" style="width:auto;display:inline;"
+        {{ "checked" if filters.grouped else "" }}> Grouped view</label>
+    </div>
+    <div class="field" style="flex: 0 0 auto;">
+      <label><input type="checkbox" name="include_mammals" value="1" style="width:auto;display:inline;"
+        {{ "checked" if filters.include_mammals else "" }}> Show mammals</label>
+    </div>
+    <div class="field" style="flex: 0 0 120px;">
+      <button type="submit">Apply</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;">Summary — {{ evidence.primary.scope_label }}, {{ filters.year_range[0] }}-{{ filters.year_range[1] }}</h2>
+  <div class="summary-strip">
+    <div><div class="stat-label">Reports (n)</div><div class="stat-value">{{ total_reports }}</div></div>
+    <div><div class="stat-label">With species ID</div>
+      <div class="stat-value">{{ "%.0f%%"|format(species_id_share_value * 100) if species_id_share_value is not none else "—" }}</div></div>
+    <div><div class="stat-label">Known damage outcome</div>
+      <div class="stat-value">{{ "%.0f%%"|format(pct_known_damage * 100) if pct_known_damage is not none else "—" }}</div></div>
+    <div><div class="stat-label">Damaging reports</div><div class="stat-value">{{ n_damaging }}</div></div>
+    <div><div class="stat-label">Data years</div><div class="stat-value">{{ year_range_bounds[0] }}-{{ year_range_bounds[1] }}</div></div>
+  </div>
+  <p class="meta">Cohort: <strong>{{ cohort_labels[filters.cohort] }}</strong> — see <a href="/methods">Methods</a> for the exact definition.</p>
+  {% if exposure %}
+    {% if exposure.available %}
+      <p class="meta">Strike rate: <strong>{{ "%.1f"|format(exposure.rate_per_10k_ops) }}</strong> per 10,000 GA operations
+        (n_ops={{ exposure.n_ops }}, source: {{ exposure.source }}).</p>
+    {% else %}
+      <p class="warn">Strike rate unavailable: {{ exposure.missing_reason }}</p>
+    {% endif %}
+  {% endif %}
+
+  <h3 style="font-size:0.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;">Reports by month</h3>
+  <div class="month-chart">
+    {% for m in month_chart %}
+      <div class="bar-wrap">
+        <div class="bar-n">{{ m.n if m.n else "" }}</div>
+        <div class="bar {{ 'low-n' if m.low_n else '' }}" style="height: {{ m.height_pct if m.n else 2 }}%;"></div>
+        <div class="bar-label">{{ m.label }}</div>
+      </div>
+    {% endfor %}
+  </div>
+  <p class="meta">Hatched bars: fewer than 3 reports that month — read with caution.</p>
+</div>
+
+{% macro taxon_table(tier) %}
+  {% if tier %}
+    <div class="tier-heading">{{ tier.tier }} <span class="n-badge">(n={{ tier.n }}, scope: {{ tier.scope_label }})</span></div>
+    {% if tier.taxon_rows %}
+    <table class="sortable" data-sortable>
+      <thead>
+        <tr>
+          <th data-key="taxon">Species / group</th>
+          <th data-key="group_label">Taxonomic group</th>
+          <th data-key="n_reports">Reports</th>
+          <th data-key="damage_share">Damaging / known</th>
+          <th data-key="fbbo_rate">FBBO activity (selected months)</th>
+          <th data-key="evidence">Evidence tier</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in tier.taxon_rows %}
+        <tr class="{{ 'mammal-row' if row.is_mammal else '' }}">
+          <td><a href="{{ url_for('species_detail', taxon=row.taxon_key, **query_args) }}">{{ row.taxon }}</a></td>
+          <td>{{ row.group_label }}</td>
+          <td>{{ row.n_reports }}</td>
+          <td class="{{ 'small-sample' if row.small_sample else '' }}">
+            {% if row.insufficient_evidence %}
+              <span class="insufficient">insufficient evidence (n={{ row.n_known_outcome }})</span>
+            {% else %}
+              {{ row.n_damaging }}/{{ row.n_known_outcome }}
+              ({{ "%.0f%%"|format(row.damage_share * 100) }},
+              95% CI {{ "%.0f%%"|format(row.damage_ci_low * 100) }}-{{ "%.0f%%"|format(row.damage_ci_high * 100) }})
+              {% if row.small_sample %}<span class="evidence-pill">small sample</span>{% endif %}
+            {% endif %}
+            {% if row.n_unknown_outcome %}<div class="meta">+{{ row.n_unknown_outcome }} unknown outcome</div>{% endif %}
+          </td>
+          <td>
+            {% if row.fbbo.status == "monitored" %}
+              {{ "%.2f"|format(row.fbbo.rate_per_hour) }} / hr ({{ row.fbbo.n_months_monitored }} mo. monitored)
+            {% elif row.fbbo.status == "not_sampled_by_method" %}
+              <span class="not-sampled">not sampled by mist-net banding</span>
+            {% else %}
+              <span class="not-sampled">not monitored this period</span>
+            {% endif %}
+          </td>
+          <td><span class="evidence-pill">{{ tier.tier }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="meta">No reports in this scope.</p>
+    {% endif %}
+  {% endif %}
+{% endmacro %}
+
+<div class="card">
+  {{ taxon_table(evidence.primary) }}
+  {% if evidence.regional %}
+    <p class="warn">Fewer than 10 reports at this airport in the current filter — showing regional and national context below.</p>
+    {{ taxon_table(evidence.regional) }}
+    {{ taxon_table(evidence.national) }}
+  {% endif %}
+</div>
+
+{% if actions %}
+<div class="card">
+  <h2 style="margin-top:0;">What this suggests looking into</h2>
+  {% for action in actions %}
+    <div class="card action-card">
+      <div class="action-category">{{ action.category }}</div>
+      <p><strong>Finding:</strong> {{ action.finding }}</p>
+      <p>{{ action.recommendation }}</p>
+      {% if action.citations %}
+        <div class="action-citations">
+          {% for c in action.citations %}<a href="{{ c.url }}" target="_blank" rel="noopener">{{ c.label }}</a>{% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<script>
+document.querySelectorAll("table[data-sortable]").forEach(function (table) {
+  table.querySelectorAll("th[data-key]").forEach(function (th, colIndex) {
+    th.addEventListener("click", function () {
+      var tbody = table.querySelector("tbody");
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr"));
+      var ascending = !th.classList.contains("active") || th.dataset.dir !== "asc";
+      table.querySelectorAll("th").forEach(function (h) { h.classList.remove("active"); delete h.dataset.dir; });
+      th.classList.add("active");
+      th.dataset.dir = ascending ? "asc" : "desc";
+      rows.sort(function (a, b) {
+        var av = a.children[colIndex].innerText.trim();
+        var bv = b.children[colIndex].innerText.trim();
+        var an = parseFloat(av), bn = parseFloat(bv);
+        var cmp = (!isNaN(an) && !isNaN(bn)) ? (an - bn) : av.localeCompare(bv);
+        return ascending ? cmp : -cmp;
+      });
+      rows.forEach(function (r) { tbody.appendChild(r); });
+    });
+  });
+});
+</script>
+{% endblock %}

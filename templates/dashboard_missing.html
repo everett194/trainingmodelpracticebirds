@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — BirdStrikeNet{% endblock %}
+{% block heading %}BirdStrikeNet — Eastern Shore GA bird-strike history{% endblock %}
+{% block content %}
+<div class="error">
+  Dashboard data not found. BirdStrikeNet needs:
+  <ul>
+    <li><code>data/birdstrikegeo.db</code> — run <code>python scripts/build_consolidated_database.py</code></li>
+    <li><code>configs/eastern_shore_airports.yaml</code> — already committed to this repo</li>
+  </ul>
+  If you don't have the real FAA/Trektellen source files locally, see <code>DATA_DOWNLOAD_GUIDE.md</code>.
+</div>
+{% endblock %}
