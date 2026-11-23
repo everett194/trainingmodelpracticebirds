@@ -1,0 +1,413 @@
+# configs/eastern_shore_airports.yaml
+#
+# BirdStrikeNet's Eastern Shore of Maryland airport roster: the nine
+# counties are Cecil, Kent, Queen Anne's, Talbot, Caroline, Dorchester,
+# Wicomico, Somerset, Worcester. Built from the `airports` table
+# (data/birdstrikegeo.db, sourced from OurAirports) filtered to
+# iso_region = 'US-MD', excluding heliports/closed fields, then assigned
+# to a county by municipality name (OurAirports has no county column)
+# and cross-checked against longitude to drop Western Shore/Southern MD/
+# Western MD fields that share a border town name. Edit this file
+# directly to add/remove/re-tag an airport -- the dashboard reads
+# whatever is here, not a hardcoded list in code.
+#
+# `towered`: verified via live web search (AirNav/AOPA/FAA sources) for
+# SBY, OXB, and ESN only -- see the citations below. Every other field
+# on this list is a small private/county strip with no published
+# control tower; marked `towered: false` by inference (no contract-
+# tower listing found for any of them), not individually re-verified
+# one by one. Flip any of these if you know otherwise.
+#
+# `faa_lid`: the AIRPORT_ID value actually used in the FAA Wildlife
+# Strike Database for this field (confirmed against real strike rows
+# where any exist, e.g. KESN/KSBY/KOXB/KCGE/W29/3W3) -- FAA sometimes
+# drops the "K" ICAO prefix for small fields (e.g. "W29", "MD1") even
+# though OurAirports' `ident` keeps a "K"-prefixed or bare form
+# inconsistently. Verify a new entry's faa_lid against real strike data
+# before trusting it blindly, the same way DATABASE.md's worked example
+# teaches for any other species/airport join in this project.
+
+counties:
+  - Cecil
+  - Kent
+  - "Queen Anne's"
+  - Talbot
+  - Caroline
+  - Dorchester
+  - Wicomico
+  - Somerset
+  - Worcester
+
+airports:
+  # --- Cecil County ---
+  - faa_lid: K58M
+    name: Cecil County Airport
+    municipality: Elkton
+    county: Cecil
+    towered: false
+  - faa_lid: 93MD
+    name: Knollwood Farm Airport
+    municipality: Elkton
+    county: Cecil
+    towered: false
+  - faa_lid: MD93
+    name: Hexton Farms Airport
+    municipality: Cecilton
+    county: Cecil
+    towered: false
+  - faa_lid: MD03
+    name: Woodstock Airport
+    municipality: Chesapeake City
+    county: Cecil
+    towered: false
+  - faa_lid: 16MD
+    name: High Valley Airport
+    municipality: North East
+    county: Cecil
+    towered: false
+
+  # --- Kent County ---
+  - faa_lid: MD1
+    name: Massey Aerodrome
+    municipality: Massey
+    county: Kent
+    towered: false
+  - faa_lid: MD63
+    name: Cromwell Farm Airport
+    municipality: Chestertown
+    county: Kent
+    towered: false
+  - faa_lid: MD19
+    name: Hybarc Farm Airport
+    municipality: Chestertown
+    county: Kent
+    towered: false
+  - faa_lid: MD11
+    name: Wright Field
+    municipality: Chestertown
+    county: Kent
+    towered: false
+  - faa_lid: MD59
+    name: Silver Hill Airport
+    municipality: Chestertown
+    county: Kent
+    towered: false
+  - faa_lid: MD66
+    name: Smith Field
+    municipality: Chestertown
+    county: Kent
+    towered: false
+  - faa_lid: MD69
+    name: Harris Airport
+    municipality: Still Pond
+    county: Kent
+    towered: false
+  - faa_lid: 05MD
+    name: Breezecroft Airport
+    municipality: Chestertown
+    county: Kent
+    towered: false
+  - faa_lid: 0MD4
+    name: Pond View Private Airport
+    municipality: Chestertown
+    county: Kent
+    towered: false
+  - faa_lid: 73MD
+    name: Swan Creek Airport
+    municipality: Rock Hall
+    county: Kent
+    towered: false
+
+  # --- Queen Anne's County ---
+  - faa_lid: MD62
+    name: Church Hill Airport
+    municipality: Church Hill
+    county: "Queen Anne's"
+    towered: false
+  - faa_lid: MD91
+    name: Saxon Farms Airport
+    municipality: Church Hill
+    county: "Queen Anne's"
+    towered: false
+  - faa_lid: MD23
+    name: Kennersley Airport
+    municipality: Church Hill
+    county: "Queen Anne's"
+    towered: false
+  - faa_lid: 27MD
+    name: Myles Landing Airport
+    municipality: Church Hill
+    county: "Queen Anne's"
+    towered: false
+  - faa_lid: MD21
+    name: Ashland Landing Farm Airport
+    municipality: Centreville
+    county: "Queen Anne's"
+    towered: false
+  - faa_lid: 94MD
+    name: Conquest Field
+    municipality: Centreville
+    county: "Queen Anne's"
+    towered: false
+  - faa_lid: W29
+    name: Bay Bridge Airport
+    municipality: Stevensville
+    county: "Queen Anne's"
+    towered: false
+  - faa_lid: 3W3
+    name: Kentmorr Airpark
+    municipality: Stevensville
+    county: "Queen Anne's"
+    towered: false
+  - faa_lid: 7MD8
+    name: Kent Fort Manor Airport
+    municipality: Stevensville
+    county: "Queen Anne's"
+    towered: false
+  - faa_lid: 0MD1
+    name: Taylor Field
+    municipality: Sudlersville
+    county: "Queen Anne's"
+    towered: false
+  - faa_lid: 25MD
+    name: Whalen Field
+    municipality: Sudlersville
+    county: "Queen Anne's"
+    towered: false
+  - faa_lid: 32MD
+    name: Roseland Airport
+    municipality: Sudlersville
+    county: "Queen Anne's"
+    towered: false
+  - faa_lid: MD70
+    name: Flying Acres Airport
+    municipality: Sudlersville
+    county: "Queen Anne's"
+    towered: false
+
+  # --- Talbot County ---
+  - faa_lid: KESN
+    name: Easton Airport / Newnam Field
+    municipality: Easton
+    county: Talbot
+    towered: true  # confirmed contract tower (Class D), see citations below
+  - faa_lid: 88MD
+    name: Beaven Field
+    municipality: Easton
+    county: Talbot
+    towered: false
+  - faa_lid: MD28
+    name: Ewing Airport
+    municipality: Easton
+    county: Talbot
+    towered: false
+  - faa_lid: MD64
+    name: Stewart Airport
+    municipality: McDaniel
+    county: Talbot
+    towered: false
+  - faa_lid: 7MD9
+    name: Tilghman Whipp Airport
+    municipality: Tilghman
+    county: Talbot
+    towered: false
+
+  # --- Caroline County ---
+  - faa_lid: 9MD9
+    name: G W Farm Airport
+    municipality: Denton
+    county: Caroline
+    towered: false
+  - faa_lid: 6MD1
+    name: Dileo Field
+    municipality: Denton
+    county: Caroline
+    towered: false
+  - faa_lid: US-0461
+    name: Oak Grove Farm Airport
+    municipality: Federalsburg
+    county: Caroline
+    towered: false
+  - faa_lid: 00MD
+    name: Slater Field
+    municipality: Federalsburg
+    county: Caroline
+    towered: false
+  - faa_lid: 7MD1
+    name: Magennis Farm Airport
+    municipality: Federalsburg
+    county: Caroline
+    towered: false
+  - faa_lid: 8MD4
+    name: Spiering Airport
+    municipality: Greensboro
+    county: Caroline
+    towered: false
+  - faa_lid: KRJD
+    name: Ridgely Airpark
+    municipality: Ridgely
+    county: Caroline
+    towered: false
+  - faa_lid: 7MD0
+    name: Our Domain Airport
+    municipality: Marydel
+    county: Caroline
+    towered: false
+
+  # --- Dorchester County ---
+  - faa_lid: KCGE
+    name: Cambridge-Dorchester Airport
+    municipality: Cambridge
+    county: Dorchester
+    towered: false  # no contract-tower listing found; not individually re-verified beyond that
+  - faa_lid: 3MD8
+    name: Pokety Airport
+    municipality: Cambridge
+    county: Dorchester
+    towered: false
+  - faa_lid: US-6508
+    name: Castle Haven Airport
+    municipality: Cambridge
+    county: Dorchester
+    towered: false
+  - faa_lid: MD04
+    name: Rossneck Airport
+    municipality: Cambridge
+    county: Dorchester
+    towered: false
+  - faa_lid: MD82
+    name: Ragged Island Airport
+    municipality: Cambridge
+    county: Dorchester
+    towered: false
+  - faa_lid: 1MD1
+    name: Big Oak Farm Airport
+    municipality: Cambridge
+    county: Dorchester
+    towered: false
+  - faa_lid: 3MD5
+    name: Hidden Hills Airport
+    municipality: Hurlock
+    county: Dorchester
+    towered: false
+  - faa_lid: US-5559
+    name: Wroten Island Airport
+    municipality: Crapo
+    county: Dorchester
+    towered: false
+
+  # --- Wicomico County ---
+  - faa_lid: KSBY
+    name: Salisbury-Ocean City Wicomico Regional Airport
+    municipality: Salisbury
+    county: Wicomico
+    towered: true  # confirmed FAA contract tower, 0600-2230L, see citations below
+  - faa_lid: 2MD4
+    name: Ennis Aerodrome
+    municipality: Salisbury
+    county: Wicomico
+    towered: false
+  - faa_lid: 1N5
+    name: Bennett Airport
+    municipality: Salisbury
+    county: Wicomico
+    towered: false
+  - faa_lid: 11MD
+    name: Tim's Airport
+    municipality: Salisbury
+    county: Wicomico
+    towered: false
+  - faa_lid: MD35
+    name: Spring Hill Airport
+    municipality: Salisbury
+    county: Wicomico
+    towered: false
+  - faa_lid: 6MD8
+    name: Delmarvair Airport
+    municipality: Pittsville
+    county: Wicomico
+    towered: false
+  - faa_lid: US-0433
+    name: Barren Creek Field Airport
+    municipality: "Mardela Springs"
+    county: Wicomico
+    towered: false
+
+  # --- Somerset County ---
+  - faa_lid: 48MD
+    name: Le Champ Airport
+    municipality: "Princess Anne"
+    county: Somerset
+    towered: false
+  - faa_lid: 5MD5
+    name: Arcadia Farms Airport
+    municipality: "Princess Anne"
+    county: Somerset
+    towered: false
+  - faa_lid: 2MD0
+    name: Anderson Farm Airport
+    municipality: Marion
+    county: Somerset
+    towered: false
+  - faa_lid: KW41
+    name: Crisfield-Somerset County Airport
+    municipality: Crisfield
+    county: Somerset
+    towered: false
+
+  # --- Worcester County ---
+  - faa_lid: KOXB
+    name: Ocean City Municipal Airport
+    municipality: Ocean City
+    county: Worcester
+    towered: false  # confirmed non-towered (no ATCT), see citations below
+  - faa_lid: 4MD3
+    name: Carey Field
+    municipality: Bishopville
+    county: Worcester
+    towered: false
+  - faa_lid: 4MD1
+    name: Bunting's Field
+    municipality: Berlin
+    county: Worcester
+    towered: false
+  - faa_lid: MD00
+    name: Fair's Airport
+    municipality: "Pocomoke City"
+    county: Worcester
+    towered: false
+  - faa_lid: 7MD7
+    name: Boomers Field
+    municipality: Pocomoke
+    county: Worcester
+    towered: false
+  - faa_lid: MD57
+    name: Beverly Airport
+    municipality: "Pocomoke City"
+    county: Worcester
+    towered: false
+
+# Candidates found near the Eastern Shore but deliberately EXCLUDED --
+# listed here so a future edit doesn't silently re-add a Western
+# Shore/Southern MD/Western MD field just because its town name looks
+# plausible:
+#   - Pembroke Farm Airport (6MD4, Conowingo) -- excluded: county
+#     (Cecil vs. Harford) genuinely ambiguous from name/coordinates
+#     alone; add it to Cecil above if you confirm it's east of the
+#     Susquehanna.
+#   - Every Harford/Baltimore/Anne Arundel/Calvert/St Mary's/Charles/
+#     Prince George's/Montgomery/Frederick/Carroll/Washington/
+#     Allegany/Garrett County field that showed up in the same
+#     longitude-sorted MD airport query (e.g. KBWI, KADW, KANP, KGAI,
+#     KFDK, KHGR, K2G4) -- all genuinely Western Shore or farther west,
+#     not Eastern Shore.
+
+# Towered-status source citations (fetched live, see chat for full
+# search results):
+#   - KSBY: AirNav (https://www.airnav.com/airport/KSBY), AOPA airport
+#     directory -- FAA contract tower, 0600-2230 local.
+#   - KOXB: AirNav (https://www.airnav.com/airport/KOXB) -- control
+#     tower: no.
+#   - KESN: AirNav (https://airnav.com/airport/KESN), AOPA
+#     (https://www.aopa.org/news-and-media/all-news/2007/november/16/new-tower-goes-operational-at-easton)
+#     -- FAA contract tower (Class D), opened 2007.
