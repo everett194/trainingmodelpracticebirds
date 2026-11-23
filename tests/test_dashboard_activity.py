@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from birdstrikegeo.dashboard.activity import monthly_activity_for_taxon  # noqa: E402
+from birdstrikegeo.dashboard.activity import aggregate_activity_for_taxon, monthly_activity_for_taxon  # noqa: E402
 
 
 def _effort_row(species, month, count, hours):
@@ -62,3 +62,54 @@ def test_matching_is_case_insensitive():
     result = monthly_activity_for_taxon(rows, "barn swallow", grouped=False, months=["aug"])
     assert result[0]["status"] == "monitored"
     assert result[0]["count"] == 4.0
+
+
+def test_aggregate_pools_monitored_months_into_one_rate():
+    rows = [_effort_row("Barn Swallow", "jun", count=0.0, hours=0.0),
+            _effort_row("Barn Swallow", "jul", count=10.0, hours=100.0),
+            _effort_row("Barn Swallow", "aug", count=5.0, hours=100.0)]
+    result = aggregate_activity_for_taxon(rows, "Barn Swallow", grouped=False, months=["jun", "jul", "aug"])
+    assert result["status"] == "monitored"
+    assert result["n_months_monitored"] == 2
+    assert result["rate_per_hour"] == 15.0 / 200.0
+
+
+def test_aggregate_not_sampled_when_no_month_detectable():
+    rows = [_effort_row("Canada Goose", "aug", count=0.0, hours=100.0)]
+    result = aggregate_activity_for_taxon(rows, "Canada Goose", grouped=False, months=["aug"])
+    assert result["status"] == "not_sampled_by_method"
+    assert result["rate_per_hour"] is None
+
+
+def test_aggregate_not_monitored_when_no_month_has_hours():
+    rows = []
+    result = aggregate_activity_for_taxon(rows, "Barn Swallow", grouped=False, months=["jun"])
+    assert result["status"] == "not_monitored"
+
+
+def test_undetectable_species_absent_from_the_export_is_not_sampled_not_not_monitored():
+    # Real-world shape: the station was monitoring (other species have
+    # hours that month), but a vulture/goose/etc. has NO row at all,
+    # because mist nets never catch one - that absence must read as
+    # "not sampled by this method," never "not monitored."
+    rows = [_effort_row("Barn Swallow", "aug", count=4.0, hours=100.0)]
+    result = monthly_activity_for_taxon(rows, "Turkey vulture", grouped=False, months=["aug"])
+    assert result[0]["status"] == "not_sampled_by_method"
+    assert result[0]["observation_hours"] == 100.0
+
+
+def test_detectable_species_absent_from_the_export_is_a_genuine_zero_not_unknown():
+    rows = [_effort_row("Barn Swallow", "aug", count=4.0, hours=100.0)]
+    result = monthly_activity_for_taxon(rows, "Rock pigeon", grouped=False, months=["aug"])
+    assert result[0]["status"] == "monitored"
+    assert result[0]["count"] == 0.0
+
+
+def test_unresolved_species_never_claims_a_confident_monitored_zero():
+    # "Unknown bird" has no documented banding_detectable (None, not
+    # False) - it must not be reported as "monitored, 0 captures,"
+    # which would misleadingly imply a confirmed negative finding.
+    rows = [_effort_row("Barn Swallow", "aug", count=4.0, hours=100.0)]
+    result = monthly_activity_for_taxon(rows, "Unknown bird", grouped=False, months=["aug"])
+    assert result[0]["status"] == "not_sampled_by_method"
+    assert result[0]["count"] is None

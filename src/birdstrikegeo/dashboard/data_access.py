@@ -33,8 +33,10 @@ def load_eastern_shore_airport_roster(config_path: str | Path) -> list[dict]:
 
 def _strike_row_query(where_clause: str = "") -> str:
     return f"""
-        SELECT AIRPORT_ID as airport_id, INCIDENT_YEAR as incident_year, INCIDENT_MONTH as incident_month,
-               SPECIES as species, INDICATED_DAMAGE as indicated_damage, AC_MASS as ac_mass, TYPE_ENG as type_eng
+        SELECT AIRPORT_ID as airport_id, AIRPORT as airport_name, INCIDENT_YEAR as incident_year,
+               INCIDENT_MONTH as incident_month, INCIDENT_DATE as incident_date, SPECIES as species,
+               INDICATED_DAMAGE as indicated_damage, DAMAGE_LEVEL as damage_level,
+               PHASE_OF_FLIGHT as phase_of_flight, HEIGHT as height, AC_MASS as ac_mass, TYPE_ENG as type_eng
         FROM faa_strikes_ga
         {where_clause}
     """

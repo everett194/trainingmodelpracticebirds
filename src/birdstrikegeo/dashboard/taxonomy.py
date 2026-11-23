@@ -247,3 +247,20 @@ def classify(species: str | None) -> TaxonInfo:
 def is_covered(species: str | None) -> bool:
     """True if `species` has a real (non-fallback) taxonomy entry."""
     return bool(species) and species.strip().upper() in _TAXONOMY_UPPER
+
+
+# banding_detectable is consistent across every species sharing a group
+# (see the table above) - precomputed here so a GROUP's detectability
+# can be looked up directly, without depending on any one species
+# actually having a matching Trektellen row. This is the fix for taxa
+# mist nets structurally cannot catch (vultures, waterfowl, ...): they
+# may have ZERO rows in a real Trektellen export, and "no row found"
+# must never be confused with "not monitored."
+_GROUP_BANDING_DETECTABLE: dict[str, bool | None] = {}
+for _info in _TAXONOMY.values():
+    _GROUP_BANDING_DETECTABLE.setdefault(_info.group, _info.banding_detectable)
+
+
+def group_banding_detectable(group: str) -> bool | None:
+    """banding_detectable for a whole taxonomy group, or None if the group isn't documented."""
+    return _GROUP_BANDING_DETECTABLE.get(group)

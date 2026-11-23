@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from collections import Counter
 from pathlib import Path
 
 import markdown
@@ -46,6 +47,26 @@ from flask import Flask, render_template, request, send_from_directory
 REPO_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
+from birdstrikegeo.dashboard.actions import generate_actions  # noqa: E402
+from birdstrikegeo.dashboard.activity import aggregate_activity_for_taxon, monthly_activity_for_taxon  # noqa: E402
+from birdstrikegeo.dashboard.citations import CITATIONS  # noqa: E402
+from birdstrikegeo.dashboard.data_access import (  # noqa: E402
+    load_eastern_shore_airport_roster,
+    load_ga_strike_rows,
+    load_ops_rows,
+    load_trektellen_effort_rows,
+)
+from birdstrikegeo.dashboard.evidence import assemble_evidence  # noqa: E402
+from birdstrikegeo.dashboard.exposure import compute_strike_rate  # noqa: E402
+from birdstrikegeo.dashboard.query import (  # noqa: E402
+    COHORT_LABELS,
+    filter_by_cohort,
+    filter_by_scope,
+    query_taxon_rows,
+    recommend_default_cohort,
+    species_id_share,
+)
+from birdstrikegeo.dashboard.taxonomy import classify  # noqa: E402
 from birdstrikegeo.data.ingest_airports import load_airports  # noqa: E402
 from birdstrikegeo.features.taxonomy import SPECIES_TAXONOMY  # noqa: E402
 from birdstrikegeo.ga.features import build_operational_core_features  # noqa: E402
@@ -55,6 +76,125 @@ from birdstrikegeo.inference.calculate_activity import calculate_activity_for_ai
 from birdstrikegeo.inference.predict_damage import predict_damage  # noqa: E402
 
 app = Flask(__name__)
+
+# ---------------------------------------------------------------------------
+# BirdStrikeNet dashboard (Eastern Shore MD) paths/config
+# ---------------------------------------------------------------------------
+DASHBOARD_DB_PATH = REPO_ROOT / "data" / "birdstrikegeo.db"
+DASHBOARD_AIRPORTS_CONFIG_PATH = REPO_ROOT / "configs" / "eastern_shore_airports.yaml"
+DASHBOARD_TREKTELLEN_CSV_PATH = REPO_ROOT / "data" / "raw" / "trektellen_2025_year_totals.csv"
+DASHBOARD_OPERATIONS_DIR = REPO_ROOT / "data" / "raw" / "operations"
+DASHBOARD_SAMPLE_STRIKES_PATH = REPO_ROOT / "data" / "sample" / "faa_strikes_sample.csv"
+
+TREKTELLEN_MONTH_COLUMNS = ["mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov"]
+MONTH_CODE_BY_NUMBER = {3: "mar", 4: "apr", 5: "may", 6: "jun", 7: "jul", 8: "aug", 9: "sep", 10: "oct", 11: "nov"}
+MONTH_ABBR = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
+              7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}
+SEASON_MONTHS = {"spring": [3, 4, 5], "summer": [6, 7, 8], "fall": [9, 10, 11], "winter": [12, 1, 2]}
+PERIOD_OPTIONS = (
+    [("all", "All months"), ("spring", "Spring (Mar-May)"), ("summer", "Summer (Jun-Aug)"),
+     ("fall", "Fall (Sep-Nov)"), ("winter", "Winter (Dec-Feb)")]
+    + [(str(m), MONTH_ABBR[m]) for m in range(1, 13)]
+)
+
+_dashboard_cache: dict = {}
+
+
+def _dashboard_data_available() -> bool:
+    return DASHBOARD_DB_PATH.exists() and DASHBOARD_AIRPORTS_CONFIG_PATH.exists()
+
+
+def _load_dashboard_data() -> dict:
+    """
+    Loads once per process (this is a local single-user Flask dev
+    server; the underlying files don't change while it's running) and
+    caches in-memory. Returns the same dict every call.
+    """
+    if _dashboard_cache:
+        return _dashboard_cache
+
+    roster = load_eastern_shore_airport_roster(DASHBOARD_AIRPORTS_CONFIG_PATH)
+    airport_ids = [a["faa_lid"] for a in roster]
+    region_rows = load_ga_strike_rows(DASHBOARD_DB_PATH, airport_ids=airport_ids)
+    national_rows = load_ga_strike_rows(DASHBOARD_DB_PATH, airport_ids=None)
+    effort_rows = (
+        load_trektellen_effort_rows(DASHBOARD_TREKTELLEN_CSV_PATH, TREKTELLEN_MONTH_COLUMNS)
+        if DASHBOARD_TREKTELLEN_CSV_PATH.exists() else []
+    )
+    atads_rows, annual_rows = load_ops_rows(DASHBOARD_OPERATIONS_DIR)
+    years_present = [r["incident_year"] for r in region_rows if r.get("incident_year")]
+
+    _dashboard_cache.update({
+        "roster": roster, "airport_ids": airport_ids, "region_rows": region_rows,
+        "national_rows": national_rows, "effort_rows": effort_rows,
+        "atads_rows": atads_rows, "annual_rows": annual_rows,
+        "default_cohort": recommend_default_cohort(region_rows),
+        "year_range_bounds": (min(years_present), max(years_present)) if years_present else (1990, 2026),
+    })
+    return _dashboard_cache
+
+
+def _parse_period(period: str) -> list[int] | None:
+    if period == "all":
+        return None
+    if period in SEASON_MONTHS:
+        return SEASON_MONTHS[period]
+    try:
+        month = int(period)
+    except ValueError:
+        return None
+    return [month] if 1 <= month <= 12 else None
+
+
+def _period_label(period: str) -> str:
+    return dict(PERIOD_OPTIONS).get(period, "All months")
+
+
+def _parse_filters(data: dict) -> dict:
+    airport_param = request.args.get("airport", "region")
+    period_param = request.args.get("period", "all")
+    cohort_param = request.args.get("cohort", "")
+    grouped = request.args.get("grouped") == "1"
+    include_mammals = request.args.get("include_mammals") == "1"
+
+    lo_bound, hi_bound = data["year_range_bounds"]
+    try:
+        year_from = int(request.args.get("year_from", lo_bound))
+    except ValueError:
+        year_from = lo_bound
+    try:
+        year_to = int(request.args.get("year_to", hi_bound))
+    except ValueError:
+        year_to = hi_bound
+
+    return {
+        "airport": None if airport_param in ("region", "") else airport_param,
+        "airport_param": airport_param,
+        "period": period_param,
+        "months": _parse_period(period_param),
+        "year_range": (year_from, year_to),
+        "cohort": cohort_param if cohort_param in COHORT_LABELS else data["default_cohort"],
+        "grouped": grouped,
+        "include_mammals": include_mammals,
+    }
+
+
+def _filters_as_query_args(filters: dict) -> dict:
+    return {
+        "airport": filters["airport_param"], "period": filters["period"],
+        "year_from": filters["year_range"][0], "year_to": filters["year_range"][1],
+        "cohort": filters["cohort"], "grouped": "1" if filters["grouped"] else "",
+        "include_mammals": "1" if filters["include_mammals"] else "",
+    }
+
+
+def _airport_name_lookup(roster: list[dict]) -> dict:
+    return {a["faa_lid"]: a["name"] for a in roster}
+
+
+def _trektellen_months_for(months: list[int] | None) -> list[str]:
+    scope = months if months is not None else list(range(1, 13))
+    return [MONTH_CODE_BY_NUMBER[m] for m in scope if m in MONTH_CODE_BY_NUMBER]
 
 # ---------------------------------------------------------------------------
 # Synthetic demo: loaded from synthetic_demo/ WITHOUT modifying any of its
@@ -143,15 +283,63 @@ HAZARD_REPORT_PATH = HAZARD_REPORTS_DIR / "eastern_shore_birdstrike_risk_analysi
 # Routes
 # ---------------------------------------------------------------------------
 @app.route("/")
-def index():
-    sample_activity, real_activity = _activity_data_available()
+def dashboard_index():
+    if not _dashboard_data_available():
+        return render_template("dashboard_missing.html", active_mode="dashboard")
+
+    data = _load_dashboard_data()
+    filters = _parse_filters(data)
+    trektellen_months = _trektellen_months_for(filters["months"])
+
+    evidence = assemble_evidence(
+        data["region_rows"], data["national_rows"], airport=filters["airport"],
+        months=filters["months"], year_range=filters["year_range"], cohort=filters["cohort"],
+        grouped=filters["grouped"], include_mammals=filters["include_mammals"],
+    )
+
+    for taxon_row in evidence["primary"]["taxon_rows"]:
+        taxon_row["fbbo"] = aggregate_activity_for_taxon(
+            data["effort_rows"], taxon_row["taxon_key"], filters["grouped"], trektellen_months,
+        )
+
+    primary_airports = [filters["airport"]] if filters["airport"] else None
+    scoped_rows = filter_by_scope(
+        filter_by_cohort(data["region_rows"], filters["cohort"]),
+        airports=primary_airports, months=filters["months"], year_range=filters["year_range"],
+    )
+    total_reports = len(scoped_rows)
+    known = [r for r in scoped_rows if r.get("indicated_damage") in (0, 1)]
+    n_damaging = sum(1 for r in known if r["indicated_damage"] == 1)
+
+    monthly_counts = Counter(r["incident_month"] for r in scoped_rows if r.get("incident_month"))
+    max_month_n = max(monthly_counts.values(), default=0)
+    month_chart = [
+        {"month": m, "label": MONTH_ABBR[m], "n": monthly_counts.get(m, 0),
+         "low_n": 0 < monthly_counts.get(m, 0) < 3,
+         "height_pct": round(100 * monthly_counts.get(m, 0) / max_month_n) if max_month_n else 0}
+        for m in range(1, 13)
+    ]
+
+    exposure = None
+    if filters["airport"]:
+        exposure = compute_strike_rate(
+            total_reports, filters["airport"], filters["months"], filters["year_range"],
+            data["atads_rows"], data["annual_rows"],
+        )
+
+    actions = generate_actions(evidence["primary"]["taxon_rows"], scoped_rows)
+
+    airports_with_data = sorted({r["airport_id"] for r in data["region_rows"]})
+    airport_names = _airport_name_lookup(data["roster"])
+
     return render_template(
-        "index.html",
-        synthetic_model_available=Path(SYN_CONFIG.MODEL_PATH).exists(),
-        damage_model_available=DAMAGE_CHECKPOINT_SAMPLE.exists() or DAMAGE_CHECKPOINT_REAL.exists(),
-        activity_data_available=sample_activity or real_activity,
-        ga_damage_model_available=_ga_model_available(),
-        hazard_report_available=HAZARD_REPORT_PATH.exists(),
+        "dashboard.html", active_mode="dashboard", filters=filters, evidence=evidence,
+        total_reports=total_reports, species_id_share_value=species_id_share(scoped_rows),
+        pct_known_damage=(len(known) / total_reports) if total_reports else None,
+        n_damaging=n_damaging, month_chart=month_chart, exposure=exposure, actions=actions,
+        airports_with_data=airports_with_data, airport_names=airport_names,
+        cohort_labels=COHORT_LABELS, period_options=PERIOD_OPTIONS,
+        year_range_bounds=data["year_range_bounds"], query_args=_filters_as_query_args(filters),
     )
 
 
@@ -341,11 +529,24 @@ def ga_damage_predict():
                             preset_description=preset_description, result=result, error=error, model_missing=False)
 
 
-# --- Mode 5: Eastern Shore hazard report viewer ---
-@app.route("/hazard", methods=["GET"])
+# --- Research models overview (moved off the landing page) ---
+@app.route("/research-models", methods=["GET"])
+def research_models_index():
+    sample_activity, real_activity = _activity_data_available()
+    return render_template(
+        "research_models.html", active_mode="research_models",
+        synthetic_model_available=Path(SYN_CONFIG.MODEL_PATH).exists(),
+        damage_model_available=DAMAGE_CHECKPOINT_SAMPLE.exists() or DAMAGE_CHECKPOINT_REAL.exists(),
+        activity_data_available=sample_activity or real_activity,
+        ga_damage_model_available=_ga_model_available(),
+    )
+
+
+# --- Hazard index (relative screening measure) ---
+@app.route("/methods/hazard-index", methods=["GET"])
 def hazard_index():
     if not HAZARD_REPORT_PATH.exists():
-        return render_template("hazard.html", report_missing=True, report_html=None)
+        return render_template("methods_hazard_index.html", active_mode="hazard", report_missing=True, report_html=None)
 
     report_text = HAZARD_REPORT_PATH.read_text()
     # Rewrite the report's relative image reference to go through
@@ -354,12 +555,127 @@ def hazard_index():
         "(eastern_shore_risk_scatter.png)", "(/report-assets/eastern_shore_risk_scatter.png)"
     )
     report_html = markdown.markdown(report_text, extensions=["tables"])
-    return render_template("hazard.html", report_missing=False, report_html=report_html)
+    return render_template("methods_hazard_index.html", active_mode="hazard", report_missing=False, report_html=report_html)
 
 
 @app.route("/report-assets/<path:filename>")
 def report_assets(filename):
     return send_from_directory(HAZARD_REPORTS_DIR, filename)
+
+
+# --- BirdStrikeNet dashboard: species drill-down ---
+@app.route("/species/<taxon>", methods=["GET"])
+def species_detail(taxon):
+    if not _dashboard_data_available():
+        return render_template("dashboard_missing.html", active_mode="dashboard")
+
+    data = _load_dashboard_data()
+    filters = _parse_filters(data)
+    primary_airports = [filters["airport"]] if filters["airport"] else None
+
+    # The drill-down's 12-month chart is always full-year, regardless of
+    # the dashboard's period filter - only airport/cohort/year carry over.
+    year_scoped_rows = filter_by_scope(
+        filter_by_cohort(data["region_rows"], filters["cohort"]),
+        airports=primary_airports, year_range=filters["year_range"],
+    )
+
+    def _matches_taxon(row: dict) -> bool:
+        info = classify(row.get("species"))
+        return (info.group == taxon) if filters["grouped"] else (row.get("species") == taxon)
+
+    matching_rows = [r for r in year_scoped_rows if _matches_taxon(r)]
+    taxon_label = info_label = taxon
+    if matching_rows:
+        info = classify(matching_rows[0]["species"])
+        taxon_label = info.group_label if filters["grouped"] else matching_rows[0]["species"]
+
+    monthly_report_counts = Counter(r["incident_month"] for r in matching_rows if r.get("incident_month"))
+    all_months_codes = _trektellen_months_for(None)
+    fbbo_by_month = {
+        m["month"]: m for m in monthly_activity_for_taxon(data["effort_rows"], taxon, filters["grouped"], all_months_codes)
+    }
+    month_number_by_code = {v: k for k, v in MONTH_CODE_BY_NUMBER.items()}
+    chart = []
+    for month_num in range(1, 13):
+        code = MONTH_CODE_BY_NUMBER.get(month_num)
+        fbbo_row = fbbo_by_month.get(code) if code else {"status": "not_monitored", "count": None}
+        chart.append({
+            "month": month_num, "label": MONTH_ABBR[month_num],
+            "n_reports": monthly_report_counts.get(month_num, 0),
+            "fbbo_status": fbbo_row["status"] if fbbo_row else "not_monitored",
+            "fbbo_count": fbbo_row.get("count") if fbbo_row else None,
+        })
+
+    known = [r for r in matching_rows if r.get("indicated_damage") in (0, 1)]
+    damage_level_counts = Counter(r.get("damage_level") for r in known if r.get("damage_level"))
+
+    n_detail_min = 10
+    phase_counts = (Counter(r.get("phase_of_flight") for r in matching_rows if r.get("phase_of_flight"))
+                    if len(matching_rows) >= n_detail_min else None)
+
+    def _height_band(height) -> str | None:
+        if height is None:
+            return None
+        if height <= 0:
+            return "Ground level"
+        if height <= 500:
+            return "1-500 ft"
+        if height <= 1500:
+            return "501-1,500 ft"
+        return "Over 1,500 ft"
+
+    height_counts = None
+    if len(matching_rows) >= n_detail_min:
+        height_counts = Counter(_height_band(r.get("height")) for r in matching_rows if r.get("height") is not None)
+
+    report_list = sorted(
+        ({"date": r.get("incident_date"), "airport": r.get("airport_id"),
+          "phase": r.get("phase_of_flight"), "damage": "Yes" if r.get("indicated_damage") == 1
+          else ("No" if r.get("indicated_damage") == 0 else "Unknown")} for r in matching_rows),
+        key=lambda r: r["date"] or "", reverse=True,
+    )
+
+    national_taxon_rows = query_taxon_rows(
+        data["national_rows"], year_range=filters["year_range"], cohort=filters["cohort"],
+        grouped=filters["grouped"], include_mammals=True,
+    )
+    national_match = next((r for r in national_taxon_rows if r["taxon_key"] == taxon), None)
+
+    return render_template(
+        "species_detail.html", active_mode="dashboard", filters=filters, taxon=taxon,
+        taxon_label=taxon_label, chart=chart, n_reports=len(matching_rows), n_known=len(known),
+        n_damaging=sum(1 for r in known if r["indicated_damage"] == 1), damage_level_counts=damage_level_counts,
+        phase_counts=phase_counts, height_counts=height_counts, report_list=report_list,
+        national_match=national_match, query_args=_filters_as_query_args(filters),
+    )
+
+
+# --- Methods ---
+GA_POPULATION_SUMMARY_PATH = REPO_ROOT / "reports" / "latest" / "ga_population_summary.json"
+
+
+@app.route("/methods", methods=["GET"])
+def methods_index():
+    import json
+
+    data = _load_dashboard_data() if _dashboard_data_available() else None
+    cohort_counts = {}
+    if data is not None:
+        for key in COHORT_LABELS:
+            cohort_counts[key] = len(filter_by_cohort(data["region_rows"], key))
+
+    population_summary = None
+    if GA_POPULATION_SUMMARY_PATH.exists():
+        population_summary = json.loads(GA_POPULATION_SUMMARY_PATH.read_text())
+
+    ops_available = bool(data and (data["atads_rows"] or data["annual_rows"]))
+
+    return render_template(
+        "methods.html", active_mode="methods", data_available=data is not None,
+        data=data, cohort_labels=COHORT_LABELS, cohort_counts=cohort_counts,
+        citations=CITATIONS, population_summary=population_summary, ops_available=ops_available,
+    )
 
 
 if __name__ == "__main__":
