@@ -25,12 +25,14 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 
 import pandas as pd  # noqa: E402
 import yaml  # noqa: E402
+from sklearn.metrics import r2_score  # noqa: E402
 
 from birdstrikegeo.ga.data import build_damage_binary_target  # noqa: E402
 from birdstrikegeo.ga.features import chronological_split_by_year  # noqa: E402
-from birdstrikegeo.ga.modeling import prepare_tree  # noqa: E402
+from birdstrikegeo.ga.modeling import prepare_dense, prepare_tree  # noqa: E402
 from birdstrikegeo.hazard.features import build_severity_features  # noqa: E402
 from birdstrikegeo.hazard.modeling import predict_severity, train_severity_regressor  # noqa: E402
+from birdstrikegeo.hazard.severity_baselines import fit_and_evaluate_baselines  # noqa: E402
 from birdstrikegeo.hazard.severity_target import build_damage_severity_target  # noqa: E402
 from birdstrikegeo.hazard.species_risk import aggregate_species_risk  # noqa: E402
 
@@ -76,8 +78,32 @@ def run() -> None:
     )
     test_pred = predict_severity(model, tree_test, cat_features)
     metrics["test_rmse"] = float(((test_pred - y["test"]) ** 2).mean() ** 0.5)
+    metrics["test_r2"] = float(r2_score(y["test"], test_pred))
     print(f"[train_severity_model] val_rmse={metrics['val_rmse']:.3f} val_r2={metrics['val_r2']:.3f} "
-          f"test_rmse={metrics['test_rmse']:.3f} best_iteration={metrics['best_iteration']}")
+          f"test_rmse={metrics['test_rmse']:.3f} test_r2={metrics['test_r2']:.3f} "
+          f"best_iteration={metrics['best_iteration']}")
+
+    # Baseline comparison (closes the gap flagged in MODELING_APPROACH.md):
+    # dummy mean + classical regressors, fit on the same dense (one-hot +
+    # scaled, train-only-fit) feature matrix used for Task A's non-tree
+    # baselines - see hazard.severity_baselines.
+    dense = prepare_dense(
+        feature_sets["train"].features, feature_sets["validation"].features, feature_sets["test"].features,
+        numeric_cols, categorical_cols, config["rare_category_threshold"],
+    )
+    baseline_rows = fit_and_evaluate_baselines(
+        dense.X_train, y["train"], dense.X_val, y["validation"], dense.X_test, y["test"], config["random_seed"],
+    )
+    comparison_rows = baseline_rows + [{
+        "model": "catboost", "val_rmse": metrics["val_rmse"], "val_r2": metrics["val_r2"],
+        "test_rmse": metrics["test_rmse"], "test_r2": metrics["test_r2"],
+    }]
+    comparison_df = pd.DataFrame(comparison_rows).sort_values("test_rmse")
+    best_model = comparison_df.iloc[0]["model"]
+    print(f"[train_severity_model] Baseline comparison (by test RMSE, lower is better):\n"
+          f"{comparison_df.to_string(index=False)}")
+    print(f"[train_severity_model] Best test-RMSE model: {best_model} "
+          f"(reported as-is - not forced to be catboost)")
 
     # Per-species national risk score, from predictions over every row
     # this model saw (train+val+test) - more stable species-level
@@ -100,7 +126,9 @@ def run() -> None:
     reports_dir.mkdir(parents=True, exist_ok=True)
     species_risk.to_csv(reports_dir / "national_species_risk.csv", index=False)
     pd.Series(metrics).to_json(reports_dir / "severity_model_metrics.json", indent=2)
-    print(f"[train_severity_model] Wrote model to {models_dir}, species risk + metrics to {reports_dir}")
+    comparison_df.to_csv(reports_dir / "severity_model_comparison.csv", index=False)
+    print(f"[train_severity_model] Wrote model to {models_dir}, species risk + metrics + "
+          f"baseline comparison to {reports_dir}")
 
 
 if __name__ == "__main__":

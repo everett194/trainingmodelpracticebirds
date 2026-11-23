@@ -75,10 +75,38 @@ def _species_table(records: list[dict], columns: list[str]) -> str:
     return "\n".join(lines)
 
 
+def _comparison_table(records: list[dict]) -> str:
+    columns = ["model", "val_rmse", "val_r2", "test_rmse", "test_r2"]
+    header = "| " + " | ".join(columns) + " |"
+    separator = "| " + " | ".join("---" for _ in columns) + " |"
+    lines = [header, separator]
+    for record in records:
+        cells = [record["model"]] + [f"{record[col]:.3f}" for col in columns[1:]]
+        lines.append("| " + " | ".join(cells) + " |")
+    return "\n".join(lines)
+
+
 def build_markdown_report(context: dict, output_path: str | Path) -> None:
     metrics = context["model_metrics"]
     national_columns = ["species", "n_strikes", "mean_predicted_severity", "risk_score"]
     local_columns = ["species", "local_activity", "risk_score", "local_risk_contribution"]
+    model_comparison = context.get("model_comparison")
+    best_model = min(model_comparison, key=lambda row: row["test_rmse"])["model"] if model_comparison else None
+
+    comparison_section = ""
+    if model_comparison:
+        comparison_section = f"""
+## Severity model: baseline comparison
+
+The CatBoost regressor above is compared against a dummy (predict-the-
+mean) floor and four classical regressors (Ridge, k-nearest neighbors,
+random forest, partial least squares), all fit on the same train-only
+one-hot-encoded feature matrix. Reported as-is, sorted by test RMSE
+(lower is better) - **{best_model}** has the best test RMSE here; no
+model is declared the winner by default.
+
+{_comparison_table(model_comparison)}
+"""
 
     text = f"""# Eastern Shore Bird-Strike Risk Analysis
 
@@ -104,7 +132,7 @@ risk to aircraft. {context['n_unmatched_local_species']} locally
 observed species had no FAA strike-record match and are excluded from
 the risk scatterplot below (but are noted separately). {context.get('additional_station_years_note',
 'More station-years are expected to refine this analysis.')}
-
+{comparison_section}
 ## Nationwide findings: highest species risk (FAA-wide)
 
 {_species_table(context['national_top_species'], national_columns)}

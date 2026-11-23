@@ -59,6 +59,7 @@ an unfamiliar table.
 | `ga_population_definitions` | 4 | one row per population filter | which rows count as GA, and how many |
 | `ga_population_summary` | 1 | single row | source hash, target class balance |
 | `severity_model_metrics` | 1 | single row | severity regressor validation metrics |
+| `severity_model_comparison` | 6 | one row per model | severity regressor vs. dummy/Ridge/kNN/random forest/PLS baselines, see `MODELING_APPROACH.md` |
 
 ## Why `trektellen_counts` is the one to use
 

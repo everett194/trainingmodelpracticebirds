@@ -21,6 +21,24 @@ risk to aircraft. 55 locally
 observed species had no FAA strike-record match and are excluded from
 the risk scatterplot below (but are noted separately). This already pools multiple monitored years (see basis above); further station-years will continue to refine it, but the single-season noise concern from earlier versions of this report no longer applies at the same scale.
 
+## Severity model: baseline comparison
+
+The CatBoost regressor above is compared against a dummy (predict-the-
+mean) floor and four classical regressors (Ridge, k-nearest neighbors,
+random forest, partial least squares), all fit on the same train-only
+one-hot-encoded feature matrix. Reported as-is, sorted by test RMSE
+(lower is better) - **catboost** has the best test RMSE here; no
+model is declared the winner by default.
+
+| model | val_rmse | val_r2 | test_rmse | test_r2 |
+| --- | --- | --- | --- | --- |
+| catboost | 0.349 | 0.319 | 0.360 | 0.257 |
+| ridge | 0.363 | 0.262 | 0.381 | 0.170 |
+| pls | 0.363 | 0.262 | 0.381 | 0.169 |
+| random_forest | 0.374 | 0.219 | 0.385 | 0.149 |
+| knn | 0.400 | 0.107 | 0.409 | 0.041 |
+| dummy_mean | 0.445 | -0.107 | 0.442 | -0.119 |
+
 ## Nationwide findings: highest species risk (FAA-wide)
 
 | species | n_strikes | mean_predicted_severity | risk_score |

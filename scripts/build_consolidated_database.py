@@ -245,6 +245,16 @@ def _add_reports(conn: sqlite3.Connection) -> None:
             source=str(severity_metrics_path.relative_to(REPO_ROOT)),
         )
 
+    severity_comparison_path = reports_dir / "severity_model_comparison.csv"
+    if severity_comparison_path.exists():
+        _write_table(
+            conn, "severity_model_comparison", pd.read_csv(severity_comparison_path),
+            description="Hazard severity regressor (CatBoost) vs. a dummy mean floor and four classical "
+                         "regressors (Ridge, k-nearest neighbors, random forest, partial least squares), "
+                         "all fit on the same train-only one-hot feature matrix -- see MODELING_APPROACH.md.",
+            source=str(severity_comparison_path.relative_to(REPO_ROOT)),
+        )
+
 
 def run() -> None:
     print(f"[build_consolidated_database] Building {DB_PATH} ...")

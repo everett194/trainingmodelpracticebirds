@@ -34,6 +34,11 @@ catboost:
   learning_rate: 0.05
   early_stopping_rounds: 50
 
+# For the dense (one-hot + scaled) baseline comparison only
+# (hazard.severity_baselines) - same default as the GA damage model's
+# configs/ga_damage.yaml, not independently tuned.
+rare_category_threshold: 20
+
 trektellen:
   station_id: FBBO
   season_year: 2025

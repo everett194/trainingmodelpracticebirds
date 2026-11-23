@@ -133,8 +133,11 @@ def run() -> None:
     plot_local_risk_scatter(merged, scatter_path, activity_label=activity_label)
 
     metrics = pd.read_json(reports_dir / "severity_model_metrics.json", typ="series").to_dict()
+    comparison_path = reports_dir / "severity_model_comparison.csv"
+    model_comparison = pd.read_csv(comparison_path).to_dict("records") if comparison_path.exists() else None
     context = {
         "model_metrics": metrics,
+        "model_comparison": model_comparison,
         "national_top_species": species_risk.sort_values("risk_score", ascending=False).to_dict("records"),
         "local_top_species": merged[merged["matched_faa_species"]]
             .sort_values("local_risk_contribution", ascending=False).to_dict("records"),

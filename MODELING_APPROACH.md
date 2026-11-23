@@ -32,17 +32,23 @@ aspirational, it's already implemented and receipted:
   (0.213, tuned) rather than resampling, and reported alongside raw
   prevalence rather than hidden.
 
-**Gap found in this audit**: the secondary severity/hazard model
-(`models/hazard/severity_catboost.cbm`) has none of this rigor yet —
-`severity_model_metrics.json` has only `val_rmse`, `val_r2`,
-`best_iteration`, `test_rmse`. No calibration check (meaningful for a
-regression target via e.g. a reliability diagram of predicted vs.
-observed severity by bucket), no bootstrap CI, no baseline comparison
-(e.g. "predict the species' mean severity" as a trivial baseline). This
-is real, deferred work, not a design decision — the receipt-writing
-infrastructure already exists (`ga/receipt.py`, `evaluation/bootstrap.py`,
-`evaluation/calibration.py`) and could be pointed at the severity model
-directly.
+**Gap found in this audit, now partially closed**: the secondary
+severity/hazard model (`models/hazard/severity_catboost.cbm`) had none
+of this rigor. The baseline-comparison piece is now done —
+`birdstrikegeo.hazard.severity_baselines` fits a dummy (predict-the-
+mean) floor plus Ridge, k-nearest neighbors, random forest, and partial
+least squares on the same train-only one-hot feature matrix, and
+`scripts/train_severity_model.py` writes the result to
+`reports/latest/severity_model_comparison.csv` (also folded into the
+Eastern Shore report's "Severity model: baseline comparison" section).
+On the real FAA GA population, CatBoost has the best test RMSE (0.360
+vs. 0.381 for Ridge/PLS, the next-best) — reported as-is, not forced.
+Still missing: a calibration check (meaningful for a regression target
+via e.g. a reliability diagram of predicted vs. observed severity by
+bucket) and a bootstrap CI on the headline RMSE/R² — the
+receipt-writing infrastructure already exists (`ga/receipt.py`,
+`evaluation/bootstrap.py`, `evaluation/calibration.py`) and could be
+pointed at the severity model directly.
 
 ## Deliberately deferred: Poisson / negative-binomial count model
 
